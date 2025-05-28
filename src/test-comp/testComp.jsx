@@ -325,12 +325,13 @@ const TestComp = (props) => {
 					/>
 				</div>
 				<button
-					onClick={() =>
+					onClick={() => {
+						let items = Object.values(questions);
 						chatInterface.current.sendMessage(
 							input,
 							items?.[items?.length - 1]
-						)
-					}
+						);
+					}}
 				>
 					Send
 				</button>

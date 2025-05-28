@@ -1,6 +1,6 @@
 
 import store from "../redux/store";
-import FileUploader from "../utils/fileUploader";
+import FileUploader from "../utils/FileUploader";
 import axios, { all } from "axios";
 import { searchSession } from "../redux/actions/global.action";
 import { generateComponentId, generateShortUUID, getFileExtension, getUID } from "../utils/helpers";

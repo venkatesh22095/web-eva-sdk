@@ -1,5 +1,5 @@
 import axios from "axios";
-import FileUploader from "../../utils/fileUploader";
+import FileUploader from "../../utils/FileUploader";
 import { generateComponentId, getFileExtension, getUID } from "../../utils/helpers";
 import store from "../../redux/store";
 import { setGptUploadedFiles } from "../../redux/globalSlice";

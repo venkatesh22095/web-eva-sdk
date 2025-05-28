@@ -6,193 +6,232 @@ import { encodeHtml } from "../../utils/helpers";
 import customMarkdownRenderer from "../utils/customMarkdownRenderer";
 
 function escapeHTML(str) {
-	if (!str) return "";
-	return str
-		?.replace(/&/g, "&amp;")
-		?.replace(/</g, "&lt;")
-		?.replace(/>/g, "&gt;")
-		?.replace(/"/g, "&quot;")
-		?.replace(/'/g, "&#039;");
+  if (!str) return "";
+  return str
+    ?.replace(/&/g, "&amp;")
+    ?.replace(/</g, "&lt;")
+    ?.replace(/>/g, "&gt;")
+    ?.replace(/"/g, "&quot;")
+    ?.replace(/'/g, "&#039;");
 }
 
 function renderUserQuestion(question, userIconTemplate) {
-	if (question) {
-		return `<div class="message-bubble question">
+  if (question) {
+    return `<div class="message-bubble question">
 					<div class="message-content">
 						<div class="message-text">${encodeHtml(question)}</div>
 						${userIconTemplate ? userIconTemplate : ""}
 					</div>
 				</div>`;
-	}
-	return "";
+  }
+  return "";
 }
 
-function renderAssistantQuestion(question, assistantIconTemplate) {
-	if (question) {
-		return `<div>
-					${assistantIconTemplate}
-					${customMarkdownRenderer(escapeHTML(question))}
-				</div>`;
-	}
+function renderThoughts(conversation) {
+  const { thoughts, question } = conversation;
+  if (!thoughts?.length) return "";
+  return `
+    <div class="thinking-dropdown">
+      <details class="thoughts-accordion" ${!question ? "open" : ""}>
+        <summary class="thoughts-header">
+          <span>Thoughts</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </summary>
+        <div class="thoughts-content">
+          ${customMarkdownRenderer(
+            thoughts
+              .map((thought) => `- ${escapeHTML(thought.content)}`)
+              .join("\n")
+          )}
+        </div>
+      </details>
+    </div>
+    
+  `;
+}
+
+function renderQuestion(question) {
+  if (question) {
+    return `${customMarkdownRenderer(escapeHTML(question))}`;
+  }
+  return "";
+}
+
+function renderAssistantQuestion(conversation, assistantIconTemplate) {
+  const { question, thoughts } = conversation;
+  if (question || thoughts?.length) {
+    return `<div class="bc-question-wrapper">
+                ${assistantIconTemplate}
+                <div class="message-text">
+                    ${thoughts?.length > 0 ? renderThoughts(conversation) : ""}
+                    ${renderQuestion(question)}
+                </div>
+            </div>`;
+  }
 }
 
 function createConversationHTML(
-	conversation,
-	props,
-	assistantIconTemplate,
-	userIconTemplate,
-	loadingText
+  conversation,
+  props,
+  assistantIconTemplate,
+  userIconTemplate,
+  loadingText
 ) {
-	if (
-		conversation?.hasOwnProperty("template_html") ||
-		conversation?.templateType === "hold_conversation"
-	) {
-		return customMarkdownRenderer(`
+  if (
+    conversation?.hasOwnProperty("template_html") ||
+    conversation?.templateType === "hold_conversation"
+  ) {
+    return customMarkdownRenderer(`
             <div class="botTemplate-${conversation?.messageId}"></div>
         `);
-	}
+  }
 
-	if (conversation?.status === "in-progress") {
-		let content;
+  if (conversation?.status === "in-progress") {
+    let content;
 
-		if (conversation?.templateType === "search_answer") {
-			content = renderAssistantQuestion(
-				conversation?.question,
-				assistantIconTemplate
-			);
-			if (conversation?.answer) {
-				content += `<br/>`;
-				content += renderUserQuestion(
-					conversation?.answer,
-					userIconTemplate
-				);
-				content += `<br/>`;
-			}
-		}
-		if (conversation?.loading) {
-			content += `<div class="message-bubble loading" >
+    if (conversation?.templateType === "search_answer") {
+      content = renderAssistantQuestion(conversation, assistantIconTemplate);
+      if (conversation?.answer) {
+        content += `<br/>`;
+        content += renderUserQuestion(conversation?.answer, userIconTemplate);
+        content += `<br/>`;
+      }
+    }
+
+    // Only show loading if it's not a search_answer template and status is not in-progress
+    if (conversation?.loading) {
+      content += `<div class="message-bubble loading" >
 					${assistantIconTemplate ? assistantIconTemplate : ""}
 				<div class="loading-text">${encodeHtml(loadingText)}</div>   
 			</div>`;
-		}
-		return content;
-	} else {
-		if (conversation?.templateType === "search_answer") {
-			return `
+    }
+    return content;
+  } else {
+    if (conversation?.templateType === "search_answer") {
+      // const loadingElements = document.getElementsByClassName(
+      //   "message-bubble loading"
+      // );
+      // for (const element of loadingElements) {
+      //   element.style.display = "none";
+      // }
+
+      return `
                 <div class="completed">
-					${renderAssistantQuestion(conversation?.question, assistantIconTemplate)}
+					${renderAssistantQuestion(conversation, assistantIconTemplate)}
 					<br/>
 					${renderUserQuestion(conversation?.answer, userIconTemplate)}
 					<br/>
                 </div>
             `;
-		} else if (conversation?.templateType === "bot_template") {
-			return `
+    } else if (conversation?.templateType === "bot_template") {
+      return `
 				<div>
-					${renderAssistantQuestion(conversation?.template_html, assistantIconTemplate)}
+					${renderAssistantQuestion(conversation, assistantIconTemplate)}
 					<br/>
 					${renderUserQuestion(conversation?.answer, userIconTemplate)}
 					<br/>
 				</div>
 			`; // add pointer events none
-		}
-	}
+    }
+  }
 
-	return "";
+  return "";
 }
 
 function handleSubmit(conversation, input, props) {
-	const payload = {
-		cId: props?.cId || props?.reqId,
-		input: input,
-		context: props?.context,
-		messageId: conversation?.messageId,
-	};
-	BotConversation().submitBotResponse(payload);
+  const payload = {
+    cId: props?.cId || props?.reqId,
+    input: input,
+    context: props?.context,
+    messageId: conversation?.messageId,
+  };
+  BotConversation().submitBotResponse(payload);
 }
 
 function setupEventListeners(botConversation, props) {
-	// Input handlers
-	document.querySelectorAll(".bot-input").forEach((input) => {
-		input.addEventListener("keydown", (event) => {
-			if (event.keyCode === 13 && !event.shiftKey) {
-				event.preventDefault();
-				const messageId = event.target.dataset.messageId;
-				const conversation = Object.values(botConversation).find(
-					(conv) => conv.messageId === messageId
-				);
+  // Input handlers
+  document.querySelectorAll(".bot-input").forEach((input) => {
+    input.addEventListener("keydown", (event) => {
+      if (event.keyCode === 13 && !event.shiftKey) {
+        event.preventDefault();
+        const messageId = event.target.dataset.messageId;
+        const conversation = Object.values(botConversation).find(
+          (conv) => conv.messageId === messageId
+        );
 
-				if (conversation) {
-					handleSubmit(conversation, event.target.value, props);
-					event.target.value = "";
-				}
-			}
-		});
-	});
+        if (conversation) {
+          handleSubmit(conversation, event.target.value, props);
+          event.target.value = "";
+        }
+      }
+    });
+  });
 
-	// Button handlers
-	document.querySelectorAll(".send-button").forEach((button) => {
-		button.addEventListener("click", (event) => {
-			const messageId = event.target.dataset.messageId;
-			const input = document.querySelector(
-				`.bot-input[data-message-id="${messageId}"]`
-			);
-			const conversation = Object.values(botConversation).find(
-				(conv) => conv.messageId === messageId
-			);
+  // Button handlers
+  document.querySelectorAll(".send-button").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      const messageId = event.target.dataset.messageId;
+      const input = document.querySelector(
+        `.bot-input[data-message-id="${messageId}"]`
+      );
+      const conversation = Object.values(botConversation).find(
+        (conv) => conv.messageId === messageId
+      );
 
-			if (conversation && input) {
-				handleSubmit(conversation, input.value, props);
-				input.value = "";
-			}
-		});
-	});
+      if (conversation && input) {
+        handleSubmit(conversation, input.value, props);
+        input.value = "";
+      }
+    });
+  });
 }
 
 function setupTemplates(botConversation) {
-	if (!isEmpty(botConversation)) {
-		const templateConversations = Object.values(botConversation)?.filter(
-			(conversation) => conversation?.hasOwnProperty("template_html")
-		);
+  if (!isEmpty(botConversation)) {
+    const templateConversations = Object.values(botConversation)?.filter(
+      (conversation) => conversation?.hasOwnProperty("template_html")
+    );
 
-		if (templateConversations?.length) {
-			templateConversations.forEach((conversation) => {
-				const templateDiv = document.querySelector(
-					`.botTemplate-${conversation?.messageId}`
-				);
-				if (templateDiv && conversation?.template_html) {
-					templateDiv.appendChild(conversation.template_html);
-				}
-			});
-		}
-	}
+    if (templateConversations?.length) {
+      templateConversations.forEach((conversation) => {
+        const templateDiv = document.querySelector(
+          `.botTemplate-${conversation?.messageId}`
+        );
+        if (templateDiv && conversation?.template_html) {
+          templateDiv.appendChild(conversation.template_html);
+        }
+      });
+    }
+  }
 }
 
 function renderBotConversation(
-	props,
-	assistantIconTemplate,
-	userIconTemplate,
-	loadingText
+  props,
+  assistantIconTemplate,
+  userIconTemplate,
+  loadingText
 ) {
-	const botConversation = props?.botConversation;
+  const botConversation = props?.botConversation;
 
-	if (!Object.values(botConversation || {})?.length) {
-		return "";
-	}
+  if (!Object.values(botConversation || {})?.length) {
+    return "";
+  }
 
-	const conversationsHTML = Object.values(botConversation)
-		.map((conversation) =>
-			createConversationHTML(
-				conversation,
-				props,
-				assistantIconTemplate,
-				userIconTemplate,
-				loadingText
-			)
-		)
-		.join("");
+  const conversationsHTML = Object.values(botConversation)
+    .map((conversation) =>
+      createConversationHTML(
+        conversation,
+        props,
+        assistantIconTemplate,
+        userIconTemplate,
+        loadingText
+      )
+    )
+    .join("");
 
-	return `
+  return `
         <div class="bot-conversation-wrapper">
             ${conversationsHTML}
         </div>
@@ -201,22 +240,29 @@ function renderBotConversation(
 
 // Main function to be exported
 export function render(
-	props,
-	assistantIconTemplate,
-	userIconTemplate,
-	loadingText
+  props,
+  assistantIconTemplate,
+  userIconTemplate,
+  loadingText
 ) {
-	const html = renderBotConversation(
-		props,
-		assistantIconTemplate,
-		userIconTemplate,
-		loadingText
-	);
-	let timer;
-	timer = setTimeout(() => {
-		setupEventListeners(props?.botConversation, props);
-		setupTemplates(props?.botConversation);
-	}, 1000);
-	return html;
+  const html = renderBotConversation(
+    props,
+    assistantIconTemplate,
+    userIconTemplate,
+    loadingText
+  );
+
+  // Clear any existing timers
+  if (window.accordionSetupTimer) {
+    clearTimeout(window.accordionSetupTimer);
+  }
+
+  // Setup a new timer
+  window.accordionSetupTimer = setTimeout(() => {
+    setupEventListeners(props?.botConversation, props);
+    setupTemplates(props?.botConversation);
+  }, 100); // Reduced timeout to 100ms for faster response
+
+  return html;
 }
 export default { render };

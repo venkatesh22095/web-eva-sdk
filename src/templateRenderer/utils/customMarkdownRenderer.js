@@ -13,12 +13,21 @@ marked.setOptions({
 const customMarkdownRenderer = (text) => {
 	if (!text) return "";
 
+	// Decode HTML entities and fix newlines before markdown processing
+	const decodedText = text
+		.replace(/&quot;/g, '"')
+		.replace(/&#039;/g, "'")
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/\\n/g, '\n');  // Convert literal \n to actual newlines
+
 	// Convert markdown to HTML
-	const cleanedMarkdown = text.replace(/^\s{2,}/gm, "");
+	const cleanedMarkdown = decodedText.replace(/^\s{2,}/gm, "");
 	let rawHtml = marked(cleanedMarkdown);
 	rawHtml = rawHtml.replace("<a", '<a target="_blank"');
 
-	// Sanitize to prevent XSS (recommended)
+	// Sanitize to prevent XSS
 	const sanitizedHtml = DOMPurify.sanitize(rawHtml);
 
 	return encodeHtml ? encodeHtml(sanitizedHtml) : sanitizedHtml;
