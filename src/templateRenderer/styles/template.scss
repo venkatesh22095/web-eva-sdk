@@ -100,7 +100,8 @@
                     .srcimg {
                         img {
                             width: 20px;
-                            height: 20px;
+                            max-height: 20px;
+                            object-fit: contain;
                         }
                     }
                 }

@@ -265,4 +265,4 @@ export function render(
 
   return html;
 }
-export default { render };
+export default { render , setupTemplates };

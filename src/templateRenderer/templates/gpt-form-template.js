@@ -50,7 +50,7 @@ export function render(item) {
 	ltTitleDiv.textContent = item?.content?.formFields?.title;
 
 	const delIconDiv = document.createElement("button");
-	delIconDiv.id = "deleteAnswer";
+	delIconDiv.id = `deleteAnswer-${item?.messageId}`;
 	delIconDiv.className = "delIcon";
 	delIconDiv.textContent = "Delete";
 	leftNameDiv.appendChild(imgBlockDiv);
@@ -110,12 +110,12 @@ export function render(item) {
 
 				const inputField = document.createElement("input");
 				inputField.type = "file";
-				inputField.id = `fileUpload-${contextField?.key}`;
+				inputField.id = `fileUpload-${contextField?.key}-${item?.messageId}`;
 				formFieldLongTextElement.appendChild(inputField);
 
 				const removeButton = document.createElement("button");
 				removeButton.textContent = "Remove";
-				removeButton.id = `removeButton-${contextField?.key}`;
+				removeButton.id = `removeButton-${contextField?.key}-${item?.messageId}`;
 				removeButton.style.display = "none";
 				formFieldLongTextElement.appendChild(removeButton);
 
@@ -123,7 +123,7 @@ export function render(item) {
 			}
 
 			const textareaElement = document.createElement("textarea");
-			textareaElement.id = `inputValue-${contextField?.key}`;
+			textareaElement.id = `inputValue-${contextField?.key}-${item?.messageId}`;
 			textareaElement.placeholder =
 				contextField?.value?.placeholder || "Enter Text...";
 			textareaElement.textContent = contextField?.value?.default || "";
@@ -133,12 +133,12 @@ export function render(item) {
 		if (contextField?.value?.type === "file") {
 			const inputField = document.createElement("input");
 			inputField.type = "file";
-			inputField.id = `fileUpload-${contextField?.key}`;
+			inputField.id = `fileUpload-${contextField?.key}-${item?.messageId}`;
 			grpInputDiv.appendChild(inputField);
 
 			const removeButton = document.createElement("button");
 			removeButton.textContent = "Remove";
-			removeButton.id = `removeButton-${contextField?.key}`;
+			removeButton.id = `removeButton-${contextField?.key}-${item?.messageId}`;
 			removeButton.style.display = "none";
 			grpInputDiv.appendChild(removeButton);
 		}
@@ -166,7 +166,7 @@ export function render(item) {
 		if (index > 0) {
 			const deleteResponse = document.createElement("button");
 			deleteResponse.textContent = "Delete";
-			deleteResponse.id = `deleteResponse-${index}`;
+			deleteResponse.id = `deleteResponse-${item?.messageId}-${index}`;
 			singleResponseWrapper.appendChild(deleteResponse);
 		}
 
@@ -205,12 +205,12 @@ export function render(item) {
 
 					const inputField = document.createElement("input");
 					inputField.type = "file";
-					inputField.id = `fileUpload-${field?.key}-${index}`;
+					inputField.id = `fileUpload-${field?.key}-${item?.messageId}-${index}`;
 					formFieldLongTextElement.appendChild(inputField);
 
 					const removeButton = document.createElement("button");
 					removeButton.textContent = "Remove";
-					removeButton.id = `removeButton-${field?.key}-${index}`;
+					removeButton.id = `removeButton-${field?.key}-${item?.messageId}-${index}`;
 					removeButton.style.display = "none";
 					formFieldLongTextElement.appendChild(removeButton);
 
@@ -218,7 +218,7 @@ export function render(item) {
 				}
 
 				const textareaElement = document.createElement("textarea");
-				textareaElement.id = `inputValue-${field?.key}-${index}`;
+				textareaElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				textareaElement.placeholder =
 					field?.value?.placeholder || "Enter Text...";
 				textareaElement.textContent = field?.value?.default || "";
@@ -246,7 +246,7 @@ export function render(item) {
 				grpInputDiv.appendChild(grpWrapDiv);
 
 				const textareaElement = document.createElement("textarea");
-				textareaElement.id = `inputValue-${field?.key}-${index}`;
+				textareaElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				textareaElement.placeholder =
 					field?.value?.placeholder || "Enter Text...";
 				textareaElement.textContent = field?.value?.default || "";
@@ -269,11 +269,11 @@ export function render(item) {
 				grpWrapDiv.appendChild(grpNameDiv);
 
 				const selectElement = document.createElement("select");
-				selectElement.id = `dropdownValue-${field?.key}-${index}`;
+				selectElement.id = `dropdownValue-${field?.key}-${item?.messageId}-${index}`;
 
 				// Initialize Choices.js when the dropdown is available
 				let obj = {
-					selector: `#dropdownValue-${field?.key}-${index}`,
+					selector: `#dropdownValue-${field?.key}-${item?.messageId}-${index}`,
 					isMulti: false,
 					field,
 					index,
@@ -303,13 +303,13 @@ export function render(item) {
 				grpWrapDiv.appendChild(grpNameDiv);
 
 				const dropdownElement = document.createElement("select");
-				dropdownElement.id = `dropdownValue-${field?.key}-${index}`;
+				dropdownElement.id = `dropdownValue-${field?.key}-${item?.messageId}-${index}`;
 				dropdownElement.setAttribute("multiple", true);
 
 				// Initialize Choices.js when the dropdown is available
 
 				let obj = {
-					selector: `#dropdownValue-${field?.key}-${index}`,
+					selector: `#dropdownValue-${field?.key}-${item?.messageId}-${index}`,
 					isMulti: true,
 					field,
 					index,
@@ -339,7 +339,7 @@ export function render(item) {
 
 				const textareaElement = document.createElement("textarea");
 				textareaElement.className = "promptId";
-				textareaElement.id = `inputValue-${field?.key}-${index}`;
+				textareaElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				textareaElement.rows = 10;
 				textareaElement.cols = 30;
 				textareaElement.value = field?.value?.default || "";
@@ -368,7 +368,7 @@ export function render(item) {
 
 				const textareaElement = document.createElement("textarea");
 				textareaElement.className = "promptId";
-				textareaElement.id = `inputValue-${field?.key}-${index}`;
+				textareaElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				textareaElement.rows = 10;
 				textareaElement.cols = 30;
 
@@ -394,7 +394,7 @@ export function render(item) {
 				grpInputDiv.appendChild(nameTitleDiv);
 
 				const textareaElement = document.createElement("textarea");
-				textareaElement.id = `inputValue-${field?.key}-${index}`;
+				textareaElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				textareaElement.placeholder =
 					field?.value?.placeholder || "Enter text...";
 				textareaElement.textContent = field?.value?.default || "";
@@ -411,7 +411,7 @@ export function render(item) {
 
 				const numberElement = document.createElement("input");
 				numberElement.type = "number";
-				numberElement.id = `inputValue-${field?.key}-${index}`;
+				numberElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				numberElement.placeholder =
 					field?.value?.placeholder || "Enter Number...";
 				numberElement.value = field?.value?.default || "";
@@ -427,7 +427,7 @@ export function render(item) {
 				grpInputDiv.appendChild(nameTitleDiv);
 
 				const textareaElement = document.createElement("textarea");
-				textareaElement.id = `inputValue-${field?.key}-${index}`;
+				textareaElement.id = `inputValue-${field?.key}-${item?.messageId}-${index}`;
 				textareaElement.placeholder =
 					field?.value?.placeholder || "Enter Content...";
 				textareaElement.textContent = field?.value?.default || "";
@@ -443,12 +443,12 @@ export function render(item) {
 
 				const inputField = document.createElement("input");
 				inputField.type = "file";
-				inputField.id = `fileUpload-${field?.key}-${index}`;
+				inputField.id = `fileUpload-${field?.key}-${item?.messageId}-${index}`;
 				formFieldLongTextElement.appendChild(inputField);
 
 				const removeButton = document.createElement("button");
 				removeButton.textContent = "Remove";
-				removeButton.id = `removeButton-${field?.key}-${index}`;
+				removeButton.id = `removeButton-${field?.key}-${item?.messageId}-${index}`;
 				removeButton.style.display = "none";
 				formFieldLongTextElement.appendChild(removeButton);
 
@@ -468,19 +468,19 @@ export function render(item) {
 	const cancelButton = document.createElement("button");
 	cancelButton.type = "button";
 	cancelButton.textContent = "Cancel";
-	cancelButton.id = "discardAnswer";
+	cancelButton.id = `discardAnswer-${item?.messageId}`;
 	buttonWrapper.appendChild(cancelButton);
 
 	const submitButton = document.createElement("button");
 	submitButton.type = "button";
-	submitButton.id = "submitGptForm";
+	submitButton.id = `submitGptForm-${item?.messageId}`;
 	submitButton.textContent = item?.content?.formFields?.submitAction?.title;
 	buttonWrapper.appendChild(submitButton);
 
 	if (item?.content?.allowMultiResponse) {
 		const addResponseButton = document.createElement("button");
 		addResponseButton.type = "button";
-		addResponseButton.id = "addAdditionalResponse";
+		addResponseButton.id = `addAdditionalResponse-${item?.messageId}`;
 		addResponseButton.textContent = "+ Add Response";
 		buttonWrapper.appendChild(addResponseButton);
 	}

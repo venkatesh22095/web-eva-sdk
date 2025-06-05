@@ -1,4 +1,4 @@
-import { advanceSearch, cancelAdvancedSearch } from "../redux/actions/global.action";
+import { advanceSearch, cancelAdvancedSearch, stopResponseGeneration } from "../redux/actions/global.action";
 import { setChatInterfaceOptions, setCurrentQuestion, setCustomData, setEnableContextByFollowupContext, setEnabledCustomTemplates, setErrorState } from "../redux/globalSlice"
 import { updateChatData } from "../redux/globalSlice";
 import store from "../redux/store";
@@ -30,6 +30,33 @@ const ChatInterface = (props) => {
             unsubscribe();
         };
     };
+
+    const stopBotAnswer = async()=>{
+     
+        let updatedQuestions = state.questions;
+        let cancelledQuestion;
+        let currentQuestion = state.currentQuestion;
+        if(currentQuestion){
+           
+                cancelledQuestion = updatedQuestions?.[currentQuestion?.reqId]
+                       
+        }
+        else{
+            cancelledQuestion = Object.values(updatedQuestions)?.find((ques) => ques?.status === 'threadRunning')
+        }
+
+        const params = {
+          id: cancelledQuestion?.reqId, "quesId": cancelledQuestion?.id , userId : state?.profile?.data?.id
+        }
+        const payload = { boardId: state.activeBoardId }
+        
+        const response = await store.dispatch(stopResponseGeneration({params, payload}));
+        const questions = cloneDeep(store.getState().global.questions);
+        const reqdCId = getCidByReqId(questions, cancelledQuestion?.reqId);
+        constructQuestionPostCall(response, reqdCId);
+    
+
+    }
 
     const sendMessageAction = async (value) => {
       if (value) {
@@ -73,8 +100,15 @@ const ChatInterface = (props) => {
     }
 
     const cancelMessageReqAction = async (id) => {
+
+
       const reqId = id || state.currentQuestion.reqId;
       const payload = { boardId: state.activeBoardId };
+      const currQuestion = state.questions[state.currentQuestion.reqId];
+      if(currQuestion?.viewType === "threadView" && currQuestion?.botConversation) {
+         stopBotAnswer()
+        return;
+      }
     
       const response = await store.dispatch(cancelAdvancedSearch({ 
         userId: state.profile.data.id, 
@@ -428,7 +462,8 @@ const ChatInterface = (props) => {
         enableContextByFollowupContext,
         clearErrorState,
         sendMessage,
-        setAgentContext
+        setAgentContext,
+        stopBotAnswer
     }
 }
 

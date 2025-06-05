@@ -145,9 +145,12 @@ const sendEmailFunctionality = (data) => {
         })?.flat();
 
 
+        let emailSubject = document.getElementById(`email-subject-${data?.reqId}`);
+        let emailBody = document.getElementById(`email-body-${data?.reqId}`);
+
         const includeSource = data?.includeSource;
-        const subject = data?.content?.subject || '';
-        const body = data?.content?.body || '';
+        const subject = emailSubject?.value || '';
+        const body = emailBody?.innerHTML || '';
         const connectionId = document.getElementById(`email-connection-${data?.reqId}`)?.value || '';
         const attachments = data?.attachmentPreview
         const attachmentsIds = [], attachmentComponents= []

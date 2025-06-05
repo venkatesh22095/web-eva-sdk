@@ -404,4 +404,19 @@ export const sendEmail = createAsyncThunk(
     }
 );
 
+export const stopResponseGeneration = createAsyncThunk(
+    'global/stopResponseGeneration',
+    async (arg, { rejectWithValue }) => {
+        try {
+            let reqdQuestionId = encodeURIComponent(arg?.params?.id)
+            const response = await axiosInstance.post(`kora/users/${arg?.params?.userId}/advancedsearch/cancelrequest/${reqdQuestionId}`, arg?.payload);
+            console.log("stopResponseGeneration response", response);
+            return response.data;
+        } catch (error) {
+            handleErrorState(error, "Stop Response Generation");
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+
 

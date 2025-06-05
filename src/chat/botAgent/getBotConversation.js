@@ -6,6 +6,7 @@ import { updateChatData, setBotSDKInstance, setCurrentQuestion, setEnableKoreBot
 import { advanceSearch } from "../../redux/actions/global.action";
 import { constructQuestionPostCall } from "../chat-utils";
 import { setBotInstance, getBotInstance } from "./botSDKManager";
+import { setupTemplates } from "../../templateRenderer/templates/bot-conversation";
 
 
 const BotConversation = (args) => {
@@ -82,7 +83,7 @@ const BotConversation = (args) => {
                         if(state?.enableDebugging){
                             console.log("template html: ", currentBotSDKInstance.generateMessageDOM(templatePayload))
                         }
-                        question.botConversation[detail?.messageId].template_html = currentBotSDKInstance.generateMessageDOM(templatePayload)
+                        question.botConversation[detail?.messageId].template_html = currentBotSDKInstance.generateMessageDOM(templatePayload) || new chatWindow().generateMessageDOM(templatePayload)
                     }                    
                 }
             }
@@ -122,6 +123,9 @@ const BotConversation = (args) => {
         }        
         // questions[question?.reqId] = question
         store.dispatch(updateChatData(questions))
+        // BotConversation().setupTemplates(props?.botConversation);
+        // const currentBotConv = question.botConversation[detail?.messageId]
+        setupTemplates(question.botConversation);
     }
 
     const enableEVABotSdk = (payload) => {

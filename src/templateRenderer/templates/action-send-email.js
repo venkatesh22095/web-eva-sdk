@@ -120,7 +120,7 @@ const getEmailValue = (data, type) => {
             </span>
           `
         )
-        .join('')}
+        .join('') || ''}
     </div>
   `;
   
@@ -129,9 +129,10 @@ const getEmailValue = (data, type) => {
 
 const renderEmailSummary = (data) => {
 
-    let allRecievers = [...data?.content?.to, ...data?.content?.cc, ...data?.content?.bcc];
+    let allRecievers = [...data?.content?.to || [], ...data?.content?.cc || [], ...data?.content?.bcc || []];
 
     let html = `
+        <div class="emailSmallCard">
         <div class="email-summary">
             <h2>${data?.content?.subject}</h2>
         </div>
@@ -143,6 +144,7 @@ const renderEmailSummary = (data) => {
                 ${data?.content?.body}
             </div>
         </div>
+        <div>
     `
 
     return html;

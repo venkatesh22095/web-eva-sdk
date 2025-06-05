@@ -37,24 +37,24 @@ const gptFormFunctionality = (formData, item) => {
 		SubmitGPTForm(event, currentQsn);
 	};
 
-	const delIconDiv = document.getElementById("deleteAnswer");
+	const delIconDiv = document.getElementById(`deleteAnswer-${item?.messageId}`);
 	if (delIconDiv) {
 		delIconDiv.addEventListener("click", (event) => cancelAction(event));
 	}
 
 	if (contextField?.value?.canUploadFile) {
 		const inputField = document.getElementById(
-			`fileUpload-${contextField?.key}`
+			`fileUpload-${contextField?.key}-${item?.messageId}`
 		);
 		inputField.addEventListener("change", (event) =>
-			GptFileUpload(event, `${contextField?.key}`)
+			GptFileUpload(event, `${contextField?.key}-${item?.messageId}`)
 		);
 
 		const removeButton = document.getElementById(
-			`removeButton-${contextField?.key}`
+			`removeButton-${contextField?.key}-${item?.messageId}`
 		);
 		removeButton.addEventListener("click", (event) =>
-			removeUploadedFile(event, `${contextField?.key}`)
+			removeUploadedFile(event, `${contextField?.key}-${item?.messageId}`)
 		);
 	}
 
@@ -62,14 +62,14 @@ const gptFormFunctionality = (formData, item) => {
 		parameters?.forEach((field, i) => {
 			if (field?.value?.canUploadFile) {
 				const inputField = document.getElementById(
-					`fileUpload-${field?.key}-${index}`
+					`fileUpload-${field?.key}-${item?.messageId}-${index}`
 				);
 				inputField.addEventListener("change", (event) =>
-					GptFileUpload(event, `${field?.key}-${index}`)
+					GptFileUpload(event, `${field?.key}-${item?.messageId}-${index}`)
 				);
 
 				const removeButton = document.getElementById(
-					`removeButton-${field?.key}-${index}`
+					`removeButton-${field?.key}-${item?.messageId}-${index}`
 				);
 				removeButton.addEventListener("click", (event) =>
 					removeUploadedFile(event, `${field?.key}-${index}`)
@@ -78,14 +78,14 @@ const gptFormFunctionality = (formData, item) => {
 
 			if (field?.key === "prompt") {
 				const textareaElement = document.getElementById(
-					`inputValue-${field?.key}-${index}`
+					`inputValue-${field?.key}-${item?.messageId}-${index}`
 				);
 				textareaElement.value = field?.value?.default || "";
 			}
 
 			if (field?.value?.nested?.key === "prompt") {
 				const textareaElement = document.getElementById(
-					`inputValue-${field?.key}-${index}`
+					`inputValue-${field?.key}-${item?.messageId}-${index}`
 				);
 
 				const initialPromptValue = field?.value?.nested?.value;
@@ -94,7 +94,7 @@ const gptFormFunctionality = (formData, item) => {
 		});
 		if (index > 0) {
 			const deleteResponseButton = document.getElementById(
-				`deleteResponse-${index}`
+				`deleteResponse-${item?.messageId}-${index}`
 			);
 			if (deleteResponseButton) {
 				deleteResponseButton.addEventListener("click", (event) =>
@@ -104,12 +104,16 @@ const gptFormFunctionality = (formData, item) => {
 		}
 	});
 
-	const cancelButton = document.getElementById("discardAnswer");
+	const cancelButton = document.getElementById(
+		`discardAnswer-${item?.messageId}`
+	);
 	if (cancelButton) {
 		cancelButton.addEventListener("click", (event) => cancelAction(event));
 	}
 
-	const submitButton = document.getElementById("submitGptForm");
+	const submitButton = document.getElementById(
+		`submitGptForm-${item?.messageId}`
+	);
 	if (submitButton && !submitButton?.eventListenerAdded) {
 		submitButton.eventListenerAdded = true;
 		submitButton.addEventListener("click", (event) =>
@@ -118,7 +122,7 @@ const gptFormFunctionality = (formData, item) => {
 	}
 
 	const addAdditionalResponseButton = document.getElementById(
-		"addAdditionalResponse"
+		`addAdditionalResponse-${item?.messageId}`
 	);
 	if (addAdditionalResponseButton) {
 		addAdditionalResponseButton.addEventListener("click", (event) =>

@@ -3,7 +3,7 @@ import store from "../../redux/store";
 import { setGptUploadedFiles, updateChatData } from "../../redux/globalSlice";
 import InitiateChatConversationAction from "../InitiateChatConversationAction";
 import constructGptForm from "./gptTemplateBody";
-import gptFormFunctionality from "./gptTemplateFunc";
+import gptFormFunctionality from "../../templateRenderer/functionality/gpt-form-template";
 
 const MultiResponse = () => {
     let state = store.getState().global;
@@ -222,7 +222,7 @@ const MultiResponse = () => {
                         const reqdValues = Array.from(reqdInputElement.selectedOptions).map(option => option.value);
                         reqdValue = reqdValues; 
                     } else {
-                        reqdValue = reqdInputElement.value; 
+                        reqdValue = reqdInputElement?.value || reqdInputElement?.textContent || ""; 
                     }
 
                     //for the filed 'prompts' sdk should pass the id of the selected option
@@ -253,7 +253,7 @@ const MultiResponse = () => {
                 if(field?.value?.nested?.key === "prompt" || field?.key === 'prompt'){
                     // Need to send the Prompt Field Value as the prompt can be changed manually by the user if editable
                     let promptField = document.getElementById(`inputValue-${field?.key}-${item?.messageId}-${index}`); 
-                    acc["prompt"] = promptField.value || promptField.textContent;
+                    acc["prompt"] = promptField?.value || promptField?.textContent || "";
                 }
     
                 // Checking if the Field has a file and getting the file from the uploadedFiles

@@ -108,21 +108,21 @@ const History = (props) => {
     return (
         <div>
             <h1>History</h1>
-            <button onClick={fetchLoadMoreHistory}>Load more history</button>
-            <button onClick={fetchLoadMoreHistoryInitial}>Initial history data with custom param</button>
+            {/* <button onClick={fetchLoadMoreHistory}>Load more history</button> */}
+            {/* <button onClick={fetchLoadMoreHistoryInitial}>Initial history data with custom param</button> */}
             <div>
                 {historyData?.data?.length > 0 && historyData?.data?.map(item => {
                     return (
                         <div className={`historyGrp-${item?.id}`} onClick={()=> joinChatHistory(item)} key={item?.id}>
-                            <button onClick={(e) => { e.preventDefault();  e?.stopPropagation();deleteChatThread(item) }}>Delete</button>
+                            {/* <button onClick={(e) => { e.preventDefault();  e?.stopPropagation();deleteChatThread(item) }}>Delete</button> */}
                             <span>{item?.name}</span>
-                            <button onClick={(e) => { e.preventDefault();  e?.stopPropagation();editNamePopup(item) }}>Edit</button>
-                            <button onClick={(e) => { e.preventDefault(); e?.stopPropagation(); bookMarkChatThreadItem(item) }}>{item?.bookMarked ? 'UnBook Mark' : 'Book Mark'}</button>
+                            {/* <button onClick={(e) => { e.preventDefault();  e?.stopPropagation();editNamePopup(item) }}>Edit</button> */}
+                            {/* <button onClick={(e) => { e.preventDefault(); e?.stopPropagation(); bookMarkChatThreadItem(item) }}>{item?.bookMarked ? 'UnBook Mark' : 'Book Mark'}</button> */}
                         </div>
                     )
                 })}
             </div>
-            <div>
+            {/* <div>
                 <h1>Book Marked Chat Thread</h1>
                 <button onClick={getBookMarkedThreads}>Get Book Marked Chat Threads</button>
                 <button onClick={loadMoreBookMarkedThreads}>Get More Book Marked Chat Threads</button>
@@ -138,8 +138,8 @@ const History = (props) => {
             <div>
                 <h1>Recent Files</h1>
                 <button onClick={fetchRecentFilesInitial}>Initial Recent files data with custom param</button>
-                {/* <button onClick={fetchLoadMoreHistory}>Load more Recent files</button>                 */}
-            </div>            
+                <button onClick={fetchLoadMoreHistory}>Load more Recent files</button>                
+            </div>             */}
         </div>
     )
 }

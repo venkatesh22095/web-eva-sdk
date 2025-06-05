@@ -5,6 +5,7 @@ import File from './test-comp/File';
 import Agents from './test-comp/agents';
 import SelectedContext from './test-comp/selectedContext';
 import TestComp from "./test-comp/testComp";
+import ChatInterfaceDemo from './test-comp/ChatInterfaceDemo/ChatInterface';
 
 
 const App = () => {
@@ -23,11 +24,12 @@ const App = () => {
   
   return (
     <div>
+      <ChatInterfaceDemo />
       {/* <ChatTestComp/> */}
-      <TestComp />
-      <Agents />
+      {/* <TestComp /> */}
+      {/* <Agents /> */}
       {/* <File /> */}
-      <SelectedContext/>
+      {/* <SelectedContext/> */}
     </div>
   )
 }
