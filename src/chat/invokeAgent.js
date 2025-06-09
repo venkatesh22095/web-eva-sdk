@@ -13,6 +13,7 @@ const InvokeAgent = (agent) => {
         "source": agent?.id,
         "title": agent?.name,
         "icon": agent?.icon,
+        'agentType': agent?.type,
         isAgent: true
     }
 
