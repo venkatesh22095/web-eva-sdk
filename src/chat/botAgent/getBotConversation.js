@@ -6,7 +6,7 @@ import { updateChatData, setBotSDKInstance, setCurrentQuestion, setEnableKoreBot
 import { advanceSearch } from "../../redux/actions/global.action";
 import { constructQuestionPostCall } from "../chat-utils";
 import { setBotInstance, getBotInstance } from "./botSDKManager";
-import { setupTemplates } from "../../templateRenderer/templates/bot-conversation";
+import  setupTemplates  from "../../templateRenderer/templates/bot-conversation";
 
 
 const BotConversation = (args) => {

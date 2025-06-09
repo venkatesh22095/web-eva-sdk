@@ -82,11 +82,11 @@ function renderThoughts(conversation) {
           </svg>
         </summary>
         <div class="thoughts-content">
-          ${customMarkdownRenderer(
-				thoughts
-					.map((thought) => `- ${escapeHTML(thought.content)}`)
-					.join("\n")
-			)}
+          <ul>
+            ${thoughts
+              .map((thought) => `<li>${thought.content}</li>`)
+              .join("")}
+          </ul>
         </div>
       </details>
     </div>
