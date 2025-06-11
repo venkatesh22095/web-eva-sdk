@@ -26,8 +26,14 @@ export function render(
 	{ assistantIconTemplate, userIconTemplate, loadingText }
 ) {
 	try {
-		// Handle loading state
-		if (data?.loading) {
+		let loading = data?.loading;
+
+		if(data?.botConversation && Object.values(data?.botConversation)[0]?.thoughts?.length > 0){
+			loading = false;
+		}
+
+		if(loading){
+
 			return TemplateComponents.wrapTemplate(
 				TemplateComponents.renderLoading(
 					data,
@@ -37,7 +43,7 @@ export function render(
 				),
 				{ type: "loading", id: data.id }
 			);
-		}
+		} 
 
 		// Handle error state
 		if (data.error) {
