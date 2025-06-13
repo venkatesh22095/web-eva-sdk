@@ -509,6 +509,11 @@ function FileUploader({
             _self._readyForUpload();
         })
         .catch(function(error){
+            /*Adding proper error to codes to handle the ERROR */
+            if(error?.response?.data?.errors?.length){
+                _self.onError(error?.response?.data?.errors?.[0])
+                return;
+            }
             if(_self?.source?.token?.reason?.message !== "Upload aborted by the user."){
                 _self.onError('FILE_TOKEN_CREATION_ERROR');
              }

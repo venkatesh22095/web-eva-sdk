@@ -3,7 +3,7 @@ import FileUploader from "../../utils/FileUploader";
 import { generateComponentId, getFileExtension, getUID } from "../../utils/helpers";
 import store from "../../redux/store";
 import { setGptUploadedFiles } from "../../redux/globalSlice";
-import { cloneDeep } from "lodash";
+import { cloneDeep, isEmpty } from "lodash";
 
 let gptFileData = null;
 
@@ -50,7 +50,7 @@ const uploadFileInitial = (file, id, resolve, reject) => {
     obj.title = u?.file?.name
     obj.source = "attachment"
     obj.extName = getFileExtension(u?.file?.name)
-
+    obj.size = u?.file?.size
     u.start(
         (res) => { }, (file) => {
             let componentId = generateComponentId();                        
@@ -65,12 +65,17 @@ const uploadFileInitial = (file, id, resolve, reject) => {
             }
 
             
-            let currentFileData = cloneDeep(gptFileData) || {}
-            currentFileData[id] = {
+            let currentFileData = cloneDeep(store.getState().global.GptUploadedFiles) || {}
+            if(!Array.isArray(currentFileData[id])) {
+                currentFileData[id] = [];
+            }
+            currentFileData[id].push({
+                ...obj,
                 type: "file",
                 value: file?.fileUrl?.fileId,
-                title: file?.title || file?.fileName
-            }
+                title: file?.title || file?.fileName,
+                fileId:file?.fileUrl?.fileId                
+            });            
 
             gptFileData = currentFileData;
             store.dispatch(setGptUploadedFiles(currentFileData))
@@ -93,8 +98,17 @@ const uploadFileInitial = (file, id, resolve, reject) => {
                 reqdInputField.value = ''
             }
             let state = store.getState().global;
-            let uploadedFiles = cloneDeep(state.GptUploadedFiles);
-            delete uploadedFiles[id];
+            let uploadedFiles = cloneDeep(state.GptUploadedFiles || {});
+            if(isEmpty(uploadedFiles) || !Array.isArray(uploadedFiles[id])){
+                uploadedFiles[id] = []
+            }
+            uploadedFiles[id].push(({
+                ...obj,
+                type: "file",                
+                title: file?.title || file?.name,                 
+                error:msg               
+            }))
+            // delete uploadedFiles[id];
             store.dispatch(setGptUploadedFiles(uploadedFiles));
             reject(msg)
         })

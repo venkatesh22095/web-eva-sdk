@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { GptFileUpload } from "../chat";
 import DeleteGPTResponse from "../chat/gptTemplate/deleteGPTResponse";
 import UpdateGPTPromptValue from "../chat/gptTemplate/updateGPTPromptValue";
 import AddAdditionalGPTResponse from "../chat/gptTemplate/addAdditionalGPTResponse";
 import SubmitGPTForm from "../chat/gptTemplate/submitGPTForm";
 import RemoveUploadedGPTFile from "../chat/gptTemplate/removeUploadedGPTFile";
+import store from "../redux/store";
+import { use } from "marked";
+import { set } from "lodash";
 
-const MultiResponseTestComp = ({ item }) => {
-
+const MultiResponseTestComp = ({ item, files }) => {        
     let forms = item?.gpt_forms;
     return (
         <>
@@ -27,8 +29,24 @@ const MultiResponseTestComp = ({ item }) => {
 
                             {(contextField?.value?.type === "file" || contextField?.value?.canUploadFile) && (
                                 <>
-                                    <input type="file" id={`fileUpload-${contextField?.key}-${item?.messageId}`} onChange={(e) => GptFileUpload(e, `${contextField?.key}-${item?.messageId}`)}/>
-                                    <button onClick={(e) => RemoveUploadedGPTFile(e, `${contextField?.key}-${item?.messageId}`)} id = {`removeButton-${contextField?.key}-${item?.messageId}`}style={{display: "none"}}>Remove</button>
+                                    <input type="file" id={`fileUpload-${contextField?.key}-${item?.messageId}`} onChange={
+                                        async (e) => {   
+                                            try{
+                                                await GptFileUpload(e, `${contextField?.key}-${item?.messageId}`)
+                                            }    catch(err){
+                                                console.log("error", err)
+                                            }                                 
+                                        
+                                    }
+                                        }/>                                    
+                                    {files?.[`${contextField?.key}-${item?.messageId}`]?.map((file, fileIndex) => {
+                                        return (
+                                            <div key={fileIndex}>
+                                                <span>{file.title}</span>
+                                                <button onClick={(e) => RemoveUploadedGPTFile(e, `${contextField?.key}-${item?.messageId}`, file?.mediaName)} id = {`removeButton-${contextField?.key}-${item?.messageId}-${file?.value}`}>Remove</button>
+                                            </div>
+                                        )
+                                    })}
                                 </>
                             )}
 
@@ -86,10 +104,24 @@ const MultiResponseTestComp = ({ item }) => {
                                                 <div key={subIndex} value={subItem?.value} contentEditable="true" id={`inputValue-${subItem?.key}-${item?.messageId}-${subIndex}`} />
                                             </>
                                         )}
-                                        {(subItem?.value?.canUploadFile) && (
+                                        {(subItem?.value?.canUploadFile || subItem?.value?.type === 'file') && (
                                             <>  
-                                                <input type="file" id={`fileUpload-${subItem?.key}-${item?.messageId}-${subIndex}`} onChange={(e) => GptFileUpload(e, `${subItem?.key}-${item?.messageId}-${subIndex}`)}/>
-                                                <button onClick={(e) => RemoveUploadedGPTFile(e, `${subItem?.key}-${item?.messageId}-${subIndex}`)} id = {`removeButton-${subItem?.key}-${item?.messageId}-${subIndex}`} style={{display: "none"}}>Remove</button>
+                                                <input type="file" id={`fileUpload-${subItem?.key}-${item?.messageId}-${subIndex}`} onChange={
+                                                    async(e) => {
+                                                        try{
+                                                            await GptFileUpload(e, `${subItem?.key}-${item?.messageId}-${subIndex}`)
+                                                        }catch(err){
+                                                            console.log("error", err)
+                                                        }
+                                                    }}/>
+                                                {files?.[`${subItem?.key}-${item?.messageId}-${subIndex}`]?.map((file, fileIndex) =>{
+                                                    return(
+                                                        <div key={fileIndex}>
+                                                            <span>{file.title}</span>
+                                                             <button onClick={(e) => RemoveUploadedGPTFile(e, `${subItem?.key}-${item?.messageId}-${subIndex}`, file?.mediaName)} id = {`removeButton-${subItem?.key}-${item?.messageId}-${subIndex}`}>Remove</button>
+                                                        </div>
+                                                    )
+                                                })}                                               
                                             </>
                                         )}
                                         {(subItem?.key === "prompt") && (

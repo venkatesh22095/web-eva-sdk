@@ -132,6 +132,14 @@ const MultiResponse = () => {
         let payloadContext = [];
         if (!isEmpty(contextFields)) {
 
+            payloadContext = {
+                [contextFields?.key]: {
+                    type: contextFields?.value?.type,
+                    required: !!contextFields?.value?.required,
+                    label: contextFields?.label
+                }    
+            }
+
             let reqdValue;
             if(state?.enableDebugging){
                 console.log("Recieved Context Fields", contextFields)
@@ -142,7 +150,11 @@ const MultiResponse = () => {
 
                 // "MORGAN STANLEY REQUIREMENT" -> TO HANDLE CASES WHICH DOES NOT HAVE DEPENDENCY ON ID OF THE FILE UPLOADER. 
                 if(contextFieldDiv){
-                    reqdValue = contextFieldDiv?.value || '';
+                    let ind = Object.keys(state.GptUploadedFiles).indexOf(`${contextFields?.key}-${item?.messageId}`);
+                    if(ind !== -1){
+                        reqdValue = Object.values(state.GptUploadedFiles)?.[ind]?.map(({title, fileId}) => ({title, fileId}));   
+                        payloadContext[contextFields?.key].value = reqdValue
+                    }                    
                 }else {
                    reqdValue = '' 
                 }
@@ -155,7 +167,14 @@ const MultiResponse = () => {
                 */                
                 if(state.GptUploadedFiles && (Object.keys(state.GptUploadedFiles)?.includes(`${contextFields?.key}-${item?.messageId}`))){
                     let ind = Object.keys(state.GptUploadedFiles).indexOf(`${contextFields?.key}-${item?.messageId}`);
-                    reqdValue = Object.values(state.GptUploadedFiles)[ind]?.value || '';
+                    // reqdValue = Object.values(state.GptUploadedFiles)[ind]?.value || '';
+                    if(ind !== -1){                        
+                        reqdValue = Object.values(state.GptUploadedFiles)?.[ind]?.map(({title, fileId}) => ({title, fileId}));   
+                        payloadContext[contextFields?.key] = {
+                            type:"file",
+                            value:reqdValue || []
+                        }                 
+                    }
                 }
                 // if(contextFieldDiv){
                 //     reqdValue = contextFieldDiv?.value || '';
@@ -171,18 +190,20 @@ const MultiResponse = () => {
             }
 
             // Constructing the payloadContext
-            payloadContext = {
-                [contextFields?.key]: {
-                    type: contextFields?.value?.type,
-                    required: !!contextFields?.value?.required,
-                    label: contextFields?.label
-                }    
-            }
+            //Latest Update :- moved this block to top
+            // payloadContext = {
+            //     [contextFields?.key]: {
+            //         type: contextFields?.value?.type,
+            //         required: !!contextFields?.value?.required,
+            //         label: contextFields?.label
+            //     }    
+            // }
             if(state?.enableDebugging){
                 console.log("Modified Payload Context", payloadContext)
             }
 
             // Checking if the Context Field has a file and getting the file from the uploadedFiles
+            //latest update: to recheck
             if(contextFields?.value?.canUploadFile && uploadedFiles && (Object.keys(uploadedFiles)?.includes(`${contextFields?.key}`))) {
                 let ind = Object.keys(uploadedFiles).indexOf(`${contextFields?.key}`);
                 if (ind !== -1) {
@@ -223,6 +244,7 @@ const MultiResponse = () => {
                         reqdValue = reqdValues; 
                     } else {
                         reqdValue = reqdInputElement?.value || reqdInputElement?.textContent || ""; 
+                        reqdValue = /^Output\s\d+$/.test(reqdValue) ? reqdValue?.split(" ")?.[1] : reqdValue //this check is for multi output, where we need to pass the id of the output for the context
                     }
 
                     //for the filed 'prompts' sdk should pass the id of the selected option
@@ -257,11 +279,23 @@ const MultiResponse = () => {
                 }
     
                 // Checking if the Field has a file and getting the file from the uploadedFiles
-                if (field?.value?.canUploadFile && uploadedFiles && (Object.keys(uploadedFiles)?.includes(`${field?.key}-${index}`))) {
+                if (field?.value?.canUploadFile && uploadedFiles && (Object.keys(uploadedFiles)?.includes(`${field?.key}-${item?.messageId}-${index}`))) {
                     let ind = Object.keys(uploadedFiles).indexOf(`${field?.key}-${item?.messageId}-${index}`);
                     if (ind !== -1) { 
-                        acc[field.key] = Object.values(uploadedFiles)[ind];
-                        reqdValue = acc[field.key].value;
+                        acc[field.key].type = "file"
+                        acc[field.key].value = Object.values(state.GptUploadedFiles)?.[ind]?.map(({title, fileId}) => ({title, fileId}));;
+                        // reqdValue = acc[field.key].value;
+                        reqdValue = acc[field.key];
+                    }
+                }
+
+                if (field?.value?.type === 'file' && uploadedFiles && (Object.keys(uploadedFiles)?.includes(`${field?.key}-${item?.messageId}-${index}`))) {
+                    let ind = Object.keys(uploadedFiles).indexOf(`${field?.key}-${item?.messageId}-${index}`);
+                    if (ind !== -1) { 
+                        acc[field.key].type = "file"
+                        acc[field.key].value = Object.values(state.GptUploadedFiles)?.[ind]?.map(({title, fileId}) => ({title, fileId}));;
+                        // reqdValue = acc[field.key].value;
+                        reqdValue = acc[field.key];
                     }
                 }
     
@@ -350,10 +384,15 @@ const MultiResponse = () => {
         }
     }
 
-    const removeFile = (e, index) => {
+    const removeFile = (e, index, mediaName=null) => {
         let uploadedFiles = cloneDeep(state.GptUploadedFiles);
         // Deleting that Particular File from the Uploaded Files
-        delete uploadedFiles[index];
+        //New Update:- As we are supporting multiple files, do updating the uploadedFiles object
+        if(mediaName){
+            uploadedFiles[index] = uploadedFiles[index]?.filter(file => file.mediaName !== mediaName);
+        }else{
+            delete uploadedFiles[index];
+        }
         store.dispatch(setGptUploadedFiles(uploadedFiles));
 
         // Showing the Text Area and Button for the File Upload

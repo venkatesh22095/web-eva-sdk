@@ -60,7 +60,10 @@ const BotConversation = (args) => {
             question = questions[getReqIdByMessageId(detail?.pId)]
             if (isEmpty(question)) {
                 //corresponding bot question is unavailable
-                console.error(`bot question with id: ${detail?.messageId} is unavailable, please check the store`)
+                if(state?.enableDebugging){
+                    console.error(`bot question with id: ${detail?.messageId} is unavailable, please check the store`)
+                }
+                return;
             } else {
                 if (!question?.hasOwnProperty('botConversation')) {
                     question.botConversation = {}
@@ -90,18 +93,34 @@ const BotConversation = (args) => {
         }
         if(detail?.action === "update"){         
             /*reqId only comes when updating the parentMessage clo */   
-            if (detail?.message?.hasOwnProperty('reqId') && Object.keys(questions || {}).length > 0) {
-                const currentQuestion = Object.values(questions).find(ques => ques.reqId === detail.message.reqId)
-                if(currentQuestion?.historicalData){
-                    question = questions?.[currentQuestion?.id]
-                }else{
-                    question = questions?.[currentQuestion?.reqId]
-                }                
-                question = {...question, 'answer': detail?.message?.answer, 'status': detail?.message?.status}
+            // if (detail?.message?.hasOwnProperty('reqId') && Object.keys(questions || {}).length > 0) {
+            //     const currentQuestion = Object.values(questions).find(ques => ques.reqId === detail.message.reqId)
+            //     if(currentQuestion?.historicalData){
+            //         question = questions?.[currentQuestion?.id]
+            //     }else{
+            //         question = questions?.[currentQuestion?.reqId]
+            //     }                                
+            // }else{
+                
+            // }     
+            if(Object.keys(questions || {}).length === 0){
+                return;
+            }            
+            question = questions[getReqIdByMessageId(detail?.message?.pId)] /*in order to update the already existing messages of botConversation, we will depend on pId */
+            if(question){//found the question with pId, so need to update the conversation present in botConversation
+                question.botConversation[detail?.message?.messageId] = detail?.message
             }else{
-                question = questions[getReqIdByMessageId(detail?.message?.pId)]
-                question.botConversation[detail?.messageId] = detail?.message
-            }         
+                question = questions[detail?.message?.reqId] /*to update the parent message itself, */
+                if(!question){
+                    if(state?.enableDebugging){
+                        console.error(`bot question with reqId: ${detail?.message?.reqId} is unavailable, please check the store`)
+                    }
+                    return;
+                }             
+                question = {...question, 'answer': detail?.message?.answer, 'status': detail?.message?.status}
+            }
+            
+            
             /*should retain the id of the question when accessing from history */
             // if(question?.historicalData){
             //     const questionHistoryId = question.id
@@ -113,18 +132,22 @@ const BotConversation = (args) => {
             if(state?.enableDebugging){
                 console.log("question after update: ", question)
             }         
-        }        
+        }       
+        if(!question){
+            if(state?.enableDebugging){
+                console.error(`can't update the question as the question is 'undefined' or 'null' -133`)
+            }
+            return;
+        } 
         store.dispatch(setCurrentQuestion(question))
         /*In case of history data we need to depend on id of the question */
-        if(question?.historicalData){
-            questions[question?.id] = question
-        }else{
-            questions[question?.reqId] = question
-        }        
-        // questions[question?.reqId] = question
-        store.dispatch(updateChatData(questions))
-        // BotConversation().setupTemplates(props?.botConversation);
-        // const currentBotConv = question.botConversation[detail?.messageId]
+        // if(question?.historicalData){
+        //     questions[question?.id] = question
+        // }else{
+        //     questions[question?.reqId] = question
+        // }        
+        questions[question?.reqId] = question
+        store.dispatch(updateChatData(questions))        
         setupTemplates(question.botConversation);
     }
 
@@ -159,16 +182,20 @@ const BotConversation = (args) => {
         }
         if (!isEmpty(state.customData)) {
             payload.customData = state.customData
+            console.log("custom data in getBotConversation line 165 : ", payload.customData)
         }
         if(state?.enableDebugging){
             console.log("state data: ", state)        
         }
         /*need to add a loading state for the current question */
+        console.log("custom data in getBotConversation line 167 : ", payload.customData)
         addLoadingStateToCurrentQuestion(data?.cId, data?.messageId, data?.input)
         if(state?.enableDebugging){
             console.log("params data: ", data)
         }
+        console.log("custom data in getBotConversation line 171 : ", payload?.customData)
         const res = await store.dispatch(advanceSearch({ params, payload, userId: state?.profile?.data?.id || data?.userId}))
+        console.log("custom data in getBotConversation line 173 : ", payload?.customData)
         constructQuestionPostCall(res, data?.cId)
     }
 

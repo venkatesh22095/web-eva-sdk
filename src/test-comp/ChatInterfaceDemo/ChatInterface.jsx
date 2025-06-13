@@ -6,6 +6,7 @@ import Composebar from "./Composebar";
 import "./ChatInterface.scss"
 import History from "../history";
 import Agents from "../agents";
+import Notifications from "../Notifications";
 
 const ChatInterfaceDemo = () => {
   const [messages, setMessages] = useState(null);
@@ -54,6 +55,7 @@ const ChatInterfaceDemo = () => {
     <div className="chatInterfaceDemo">
       <div className="historySec">
         <History />
+        <Notifications />
         <Agents />
       </div>
       <div className="chatInterfaceSec">
