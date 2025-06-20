@@ -19,13 +19,9 @@ function downloadDocument(docId, docName, dealId, btn) {
 	const { url, token } = window.sdkConfig.customConfigURL || {};
 	if (!url || !token || !docId || !dealId) {
 		alert("Missing download parameters.");
+		showDocName(btn);
 		return;
 	}
-
-	// Show loader on button
-	const originalText = btn.innerHTML;
-	btn.disabled = true;
-	btn.innerHTML = `<span class="sources-loader"></span>`;
 
 	fetch(`${url}/deals/${dealId}/documents/${docId}/download`, {
 		method: "GET",
@@ -47,14 +43,27 @@ function downloadDocument(docId, docName, dealId, btn) {
 			a.click();
 			document.body.removeChild(a);
 			window.URL.revokeObjectURL(downloadUrl);
+			showDocName(btn);
 		})
 		.catch(() => {
 			alert("Failed to download document.");
-		})
-		.finally(() => {
-			btn.disabled = false;
-			btn.innerHTML = originalText;
+			showDocName(btn);
 		});
+}
+
+function showDocName(btn) {
+	if (!btn) return;
+
+	btn.disabled = false;
+	const loader = btn.querySelector(".download-loader");
+	const docNameSpan = btn.querySelector(".doc-name");
+
+	if (loader) {
+		loader.style.display = "none";
+	}
+	if (docNameSpan) {
+		docNameSpan.style.display = "inline";
+	}
 }
 
 function renderUserQuestion(question, userIconTemplate) {
@@ -83,9 +92,7 @@ function renderThoughts(conversation) {
         </summary>
         <div class="thoughts-content">
           <ul>
-            ${thoughts
-              .map((thought) => `<li>${thought.content}</li>`)
-              .join("")}
+            ${thoughts.map((thought) => `<li>${thought.content}</li>`).join("")}
           </ul>
         </div>
       </details>
@@ -204,6 +211,11 @@ function parseReference(ref) {
 	if (!ref) return {};
 	if (typeof ref === "object") return ref;
 	if (typeof ref === "string") {
+		// Check if it's a direct URL
+		if (ref.startsWith("http://") || ref.startsWith("https://")) {
+			return { url: ref, isDirectUrl: true };
+		}
+		// Try to parse as JSON
 		try {
 			const jsonStr = ref.replace(/'/g, '"');
 			return JSON.parse(jsonStr);
@@ -214,76 +226,163 @@ function parseReference(ref) {
 	return {};
 }
 
+function getDocumentIcon(docName = "") {
+	const extension = docName.split(".").pop()?.toLowerCase();
+
+	if (extension === "doc" || extension === "docx") {
+		return `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+			<rect x="3" y="0.75" width="9" height="10.5" rx="2" fill="url(#paint0_linear_22660_12468)"/>
+			<path d="M3 8.625H12V9.25C12 10.3546 11.1046 11.25 10 11.25H5C3.89543 11.25 3 10.3546 3 9.25V8.625Z" fill="url(#paint1_linear_22660_12468)"/>
+			<rect x="3" y="6" width="9" height="2.625" fill="url(#paint2_linear_22660_12468)"/>
+			<rect x="3" y="3.375" width="9" height="2.625" fill="url(#paint3_linear_22660_12468)"/>
+			<path d="M3 5.625C3 4.38236 4.00736 3.375 5.25 3.375C6.49264 3.375 7.5 4.38236 7.5 5.625V7.125C7.5 8.78185 6.15685 10.125 4.5 10.125H3V5.625Z" fill="black" fill-opacity="0.3"/>
+			<rect y="2.625" width="6.75" height="6.75" rx="2" fill="url(#paint4_linear_22660_12468)"/>
+			<path d="M5.625 4.13032H4.89461L4.32108 6.57713L3.69363 4.125H3.07598L2.44363 6.57713L1.875 4.13032H1.125L2.10049 7.875H2.74755L3.375 5.50798L4.00245 7.875H4.64951L5.625 4.13032Z" fill="white"/>
+			<defs>
+				<linearGradient id="paint0_linear_22660_12468" x1="3" y1="2.5" x2="12" y2="2.5" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#2B78B1"/>
+					<stop offset="1" stop-color="#338ACD"/>
+				</linearGradient>
+				<linearGradient id="paint1_linear_22660_12468" x1="3" y1="10.2656" x2="12" y2="10.2656" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#1B366F"/>
+					<stop offset="1" stop-color="#2657B0"/>
+				</linearGradient>
+				<linearGradient id="paint2_linear_22660_12468" x1="3" y1="7.3125" x2="12" y2="7.3125" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#236736"/>
+					<stop offset="1" stop-color="#6BA642"/>
+				</linearGradient>
+				<linearGradient id="paint3_linear_22660_12468" x1="3" y1="4.6875" x2="12" y2="4.6875" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#E12029"/>
+					<stop offset="1" stop-color="#FF4147"/>
+				</linearGradient>
+				<linearGradient id="paint4_linear_22660_12468" x1="0" y1="6" x2="6.75" y2="6" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#2B579A"/>
+					<stop offset="1" stop-color="#4D89E4"/>
+				</linearGradient>
+			</defs>
+		</svg>`;
+	}
+
+	if (extension === "xlsx" || extension === "xls" || extension === "csv") {
+		return `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+			<rect x="3" y="0.75" width="9" height="10.5" rx="2" fill="#2FB776"/>
+			<path d="M3 8.625H12V9.25C12 10.3546 11.1046 11.25 10 11.25H5C3.89543 11.25 3 10.3546 3 9.25V8.625Z" fill="url(#paint0_linear_22699_8955)"/>
+			<rect x="7.5" y="6" width="4.5" height="2.625" fill="#229C5B"/>
+			<rect x="7.5" y="3.375" width="4.5" height="2.625" fill="#27AE68"/>
+			<path d="M3 2.75C3 1.64543 3.89543 0.75 5 0.75H7.5V3.375H3V2.75Z" fill="#1D854F"/>
+			<rect x="3" y="3.375" width="4.5" height="2.625" fill="#197B43"/>
+			<rect x="3" y="6" width="4.5" height="2.625" fill="#1B5B38"/>
+			<path d="M3 5.625C3 4.38236 4.00736 3.375 5.25 3.375C6.49264 3.375 7.5 4.38236 7.5 5.625V7.125C7.5 8.78185 6.15685 10.125 4.5 10.125H3V5.625Z" fill="black" fill-opacity="0.3"/>
+			<rect y="2.625" width="6.75" height="6.75" rx="2" fill="url(#paint1_linear_22699_8955)"/>
+			<path d="M4.875 7.875L3.8183 5.9625L4.82861 4.125H4.00387L3.38015 5.29821L2.76675 4.125H1.91624L2.9317 5.9625L1.875 7.875H2.69974L3.36469 6.63214L4.02448 7.875H4.875Z" fill="white"/>
+			<defs>
+				<linearGradient id="paint0_linear_22699_8955" x1="3" y1="9.9375" x2="12" y2="9.9375" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#163C27"/>
+					<stop offset="1" stop-color="#2A6043"/>
+				</linearGradient>
+				<linearGradient id="paint1_linear_22699_8955" x1="0" y1="6" x2="6.75" y2="6" gradientUnits="userSpaceOnUse">
+					<stop stop-color="#1D854F"/>
+					<stop offset="1" stop-color="#2FB776"/>
+				</linearGradient>
+			</defs>
+		</svg>`;
+	}
+
+	if (extension === "pdf") {
+		return `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="12" viewBox="0 0 10 12" fill="none">
+			<path d="M9.5 2.61296V10.125C9.5 10.9534 8.82843 11.625 8 11.625H2.375C1.54657 11.625 0.875 10.9534 0.875 10.125V1.875C0.875 1.04657 1.54657 0.375 2.375 0.375H7.00933L9.5 2.61296Z" fill="#F04438"/>
+			<path d="M8.77845 5.25V5.76375H7.70595V6.31875H8.50845V6.8175H7.70595V7.8825H7.0647V5.25H8.77845Z" fill="white"/>
+			<path d="M5.32634 5.25C5.60384 5.25 5.84634 5.305 6.05384 5.415C6.26134 5.525 6.42134 5.68 6.53384 5.88C6.64884 6.0775 6.70634 6.30625 6.70634 6.56625C6.70634 6.82375 6.64884 7.0525 6.53384 7.2525C6.42134 7.4525 6.26009 7.6075 6.05009 7.7175C5.84259 7.8275 5.60134 7.8825 5.32634 7.8825H4.34009V5.25H5.32634ZM5.28509 7.3275C5.52759 7.3275 5.71634 7.26125 5.85134 7.12875C5.98634 6.99625 6.05384 6.80875 6.05384 6.56625C6.05384 6.32375 5.98634 6.135 5.85134 6C5.71634 5.865 5.52759 5.7975 5.28509 5.7975H4.98134V7.3275H5.28509Z" fill="white"/>
+			<path d="M4.00625 6.0975C4.00625 6.25 3.97125 6.39 3.90125 6.5175C3.83125 6.6425 3.72375 6.74375 3.57875 6.82125C3.43375 6.89875 3.25375 6.9375 3.03875 6.9375H2.64125V7.8825H2V5.25H3.03875C3.24875 5.25 3.42625 5.28625 3.57125 5.35875C3.71625 5.43125 3.825 5.53125 3.8975 5.65875C3.97 5.78625 4.00625 5.9325 4.00625 6.0975ZM2.99 6.4275C3.1125 6.4275 3.20375 6.39875 3.26375 6.34125C3.32375 6.28375 3.35375 6.2025 3.35375 6.0975C3.35375 5.9925 3.32375 5.91125 3.26375 5.85375C3.20375 5.79625 3.1125 5.7675 2.99 5.7675H2.64125V6.4275H2.99Z" fill="white"/>
+		</svg>`;
+	}
+
+	return `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+		<path
+			d="M9.33366 1.513V4.26669C9.33366 4.64006 9.33366 4.82675 9.40632 4.96935C9.47024 5.0948 9.57222 5.19678 9.69766 5.2607C9.84027 5.33336 10.027 5.33336 10.4003 5.33336H13.154M9.33366 11.3333H5.33366M10.667 8.66665H5.33366M13.3337 6.6588V11.4666C13.3337 12.5868 13.3337 13.1468 13.1157 13.5746C12.9239 13.951 12.618 14.2569 12.2416 14.4487C11.8138 14.6666 11.2538 14.6666 10.1337 14.6666H5.86699C4.74689 14.6666 4.18683 14.6666 3.75901 14.4487C3.38269 14.2569 3.07673 13.951 2.88498 13.5746C2.66699 13.1468 2.66699 12.5868 2.66699 11.4666V4.53331C2.66699 3.41321 2.66699 2.85316 2.88498 2.42533C3.07673 2.04901 3.38269 1.74305 3.75901 1.5513C4.18683 1.33331 4.74689 1.33331 5.86699 1.33331H8.00818C8.49736 1.33331 8.74195 1.33331 8.97212 1.38857C9.17619 1.43757 9.37128 1.51838 9.55023 1.62803C9.75206 1.75172 9.92501 1.92467 10.2709 2.27057L12.3964 4.39605C12.7423 4.74196 12.9153 4.91491 13.0389 5.11674C13.1486 5.29569 13.2294 5.49078 13.2784 5.69485C13.3337 5.92502 13.3337 6.16962 13.3337 6.6588Z"
+			stroke="currentColor"
+			stroke-width="1.5"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		/>
+	</svg>`;
+}
+
 function renderSourcesAccordion(sources = []) {
 	if (!sources.length) return "";
 
-	const grouped = {};
-	// Map to keep track of original source index for each chunk
-	const chunkOriginalIndexes = {};
-	sources.forEach((source, originalIdx) => {
-		const ref = parseReference(source.reference);
-		const docId = ref.document_id || "";
-		if (!grouped[docId]) {
-			grouped[docId] = {
-				docType: encodeHtml(ref.document_type || ""),
-				docName: encodeHtml(ref.document_name || ""),
-				docId: encodeHtml(ref.document_id || ""),
-				dealId: encodeHtml(ref.deal_id || ""),
-				chunks: [],
-			};
-		}
-		const chunkObj = {
-			title: encodeHtml(source.title || ""),
-			chunk:
-				source.chunk != null && source.chunk !== ""
-					? customMarkdownRenderer(escapeHTML(source.chunk))
-					: "",
-			originalIdx: originalIdx, // Save the original index
-		};
-		grouped[docId].chunks.push(chunkObj);
-	});
+	const sourceCount = sources.length;
+	const sourcesText = `${sourceCount} ${sourceCount === 1 ? "Source" : "Sources"}`;
 
 	return `
 		<div class="sourcesAccordionCntr">
-			<button class="sac-toggleCntr">
-				<span class="tc-toggleText" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
-					Sources
-					<span class="tc-arrowCntr" style="display: flex; align-items: center;">
+			<button class="sac-toggleCntr sources-toggle-btn">
+				<span class="tc-toggleText">
+					${sourcesText}
+					<span class="tc-arrowCntr">
 						<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 						</svg>
 					</span>
 				</span>
 			</button>
-			<div class="sac-listCntr" style="display:none;">
-				${Object.values(grouped)
-					.map((doc, idx) => {
-						return `
-							<div class="lc-cardCntr" data-source-idx="${idx}">
-								<div class="cc-headerCntr">
-									<span class="hc-type">${doc.docType}</span>
-									<span class="hc-name">${doc.docName}</span>
-									<button class="hc-viewBtn"
-										data-doc-id="${doc.docId}"
-										data-doc-name="${doc.docName}"
-										data-deal-id="${doc.dealId}"
-									>View</button>
-									<button class="hc-showChunksBtn" data-chunk-idx="${idx}">Show References</button>
+			<div class="sources-popup">
+				<div class="sources-popup-overlay"></div>
+				<div class="sources-popup-content">
+					<div class="sources-popup-header">
+						<div class="header-left">
+
+							<h3>${sourcesText}</h3>
+						</div>
+						<button class="sources-popup-close">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</button>
+					</div>
+					<div class="sources-popup-body">
+						${sources
+							.map((source, idx) => {
+								const ref = parseReference(source.reference);
+								const hasUrl =
+									(ref.url && typeof ref.url === "string") ||
+									ref.isDirectUrl;
+								const docName = ref.document_name || "";
+								const docIcon = getDocumentIcon(docName);
+
+								return `
+								<div class="source-item">
+									<div class="source-header">
+										<span class="source-index">${idx + 1}</span>
+										${source.title ? `<span class="source-title">${encodeHtml(source.title)}</span>` : ""}
+									</div>
+									${source.chunk ? `<div class="source-content">${customMarkdownRenderer(escapeHTML(source.chunk))}</div>` : ""}
+									<div class="source-footer">
+										${
+											hasUrl
+												? `<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
+												<span class="url-icon-container">
+													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+														<path d="M1 6H11M1 6C1 8.76142 3.23858 11 6 11M1 6C1 3.23858 3.23858 1 6 1M11 6C11 8.76142 8.76142 11 6 11M11 6C11 3.23858 8.76142 1 6 1M6 1C7.25064 2.36918 7.96138 4.14602 8 6C7.96138 7.85398 7.25064 9.63082 6 11M6 1C4.74936 2.36918 4.03862 4.14602 4 6C4.03862 7.85398 4.74936 9.63082 6 11" stroke="#EC0100" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+													</svg>
+												</span>
+												<span class="url-name">${encodeHtml(ref.url)}</span>
+											</a>`
+												: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}">
+												<span class="doc-icon-container">
+													${docIcon}
+												</span>
+												<span class="doc-name">${encodeHtml(docName)}</span>
+												<span class="download-loader" style="display: none;"></span>
+											</button>`
+										}
+									</div>
 								</div>
-								<div class="cc-chunksCntr" style="display:none;">
-									${doc.chunks
-										.map(
-											(chunk) => `
-												${chunk.title ? `<div class="cc-title">(${chunk.originalIdx + 1}) ${chunk.title}</div>` : ""}
-												${chunk.chunk ? `<div class="cc-content">${chunk.chunk}</div>` : ""}
-											`
-										)
-										.join('<hr class="cc-separator" />')}
-								</div>
-							</div>
-						`;
-					})
-					.join("")}
+							`;
+							})
+							.join("")}
+					</div>
+				</div>
 			</div>
 		</div>
 	`;
@@ -356,6 +455,45 @@ function setupTemplates(botConversation) {
 	}
 }
 
+function closeSourcesPopup(popup) {
+	if (popup) {
+		popup.classList.remove("active");
+		document.body.style.overflow = "";
+		if (window.sdkConfig) {
+			window.sdkConfig.isSourcesOpen = false;
+			window.dispatchEvent(new Event("sourcesOpenChange"));
+		}
+	}
+}
+
+function closeAllSourcePopups() {
+	const activePopups = document.querySelectorAll(".sources-popup.active");
+
+	// Close all active popups
+	activePopups.forEach((popup) => {
+		popup.classList.remove("active");
+	});
+
+	// Reset body overflow and global state only once after all popups are closed
+	if (activePopups.length > 0) {
+		document.body.style.overflow = "";
+		if (window.sdkConfig) {
+			window.sdkConfig.isSourcesOpen = false;
+			window.dispatchEvent(new Event("sourcesOpenChange"));
+		}
+	}
+}
+
+function resetSourcesOpenState() {
+	// Check if there are any active popups
+	const activePopup = document.querySelector(".sources-popup.active");
+
+	if (!activePopup && window.sdkConfig && window.sdkConfig.isSourcesOpen) {
+		window.sdkConfig.isSourcesOpen = false;
+		window.dispatchEvent(new Event("sourcesOpenChange"));
+	}
+}
+
 function setupSourcesAccordionListeners() {
 	const wrapper = document.querySelector(".bot-conversation-wrapper");
 	if (!wrapper) return;
@@ -363,56 +501,121 @@ function setupSourcesAccordionListeners() {
 	if (wrapper._sourcesAccordionListenerAttached) return;
 	wrapper._sourcesAccordionListenerAttached = true;
 
+	// Reset state on setup to ensure consistency
+	resetSourcesOpenState();
+
+	// Add MutationObserver to watch for DOM changes that might close popups
+	if (!window.sourcesMutationObserver) {
+		window.sourcesMutationObserver = new MutationObserver(function (
+			mutations
+		) {
+			mutations.forEach(function (mutation) {
+				if (mutation.type === "childList") {
+					// Check if any sources-popup elements were removed
+					mutation.removedNodes.forEach(function (node) {
+						if (node.nodeType === Node.ELEMENT_NODE) {
+							const removedPopup = node.querySelector
+								? node.querySelector(".sources-popup.active")
+								: null;
+							if (
+								removedPopup ||
+								(node.classList &&
+									node.classList.contains("sources-popup") &&
+									node.classList.contains("active"))
+							) {
+								if (window.sdkConfig) {
+									window.sdkConfig.isSourcesOpen = false;
+									window.dispatchEvent(
+										new Event("sourcesOpenChange")
+									);
+								}
+							}
+						}
+					});
+				}
+			});
+		});
+
+		// Start observing the document body for changes
+		window.sourcesMutationObserver.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
+	}
+
+	// Add ESC key listener for closing popup
+	document.addEventListener("keydown", function (e) {
+		if (e.key === "Escape" || e.keyCode === 27) {
+			const activePopup = document.querySelector(".sources-popup.active");
+			if (activePopup) {
+				closeSourcesPopup(activePopup);
+			}
+		}
+	});
+
+	// Add document-level listener for popup close events (overlay, close button, etc.)
+	document.addEventListener("click", function (e) {
+		const closeBtn = e.target.closest(".sources-popup-close");
+		const backBtn = e.target.closest(".sources-popup-back");
+		const overlay = e.target.closest(".sources-popup-overlay");
+
+		if (closeBtn || backBtn || overlay) {
+			e.preventDefault();
+			e.stopPropagation();
+			const popup = e.target.closest(".sources-popup");
+			closeSourcesPopup(popup);
+			return;
+		}
+	});
+
 	wrapper.addEventListener("click", function (e) {
-		const sourcesToggle = e.target.closest(".sac-toggleCntr");
+		const sourcesToggle = e.target.closest(".sources-toggle-btn");
 		if (sourcesToggle) {
 			e.preventDefault();
-			const accordion = sourcesToggle.closest(".sourcesAccordionCntr");
-			const list = accordion
-				? accordion.querySelector(".sac-listCntr")
-				: null;
-			if (list) {
-				const isOpen = list.style.display === "grid";
-				list.style.display = isOpen ? "none" : "grid";
 
-				const arrowSvg = `
-					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
-				`;
-				const arrowUpSvg = `
-					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M2 8L6 4L10 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
-				`;
-				sourcesToggle.innerHTML = `Sources <span class="tc-arrowCntr">${isOpen ? arrowSvg : arrowUpSvg}</span>`;
+			// Close any existing source popups before opening a new one
+			closeAllSourcePopups();
+
+			const popup = sourcesToggle
+				.closest(".sourcesAccordionCntr")
+				.querySelector(".sources-popup");
+			if (popup) {
+				popup.classList.add("active");
+				document.body.style.overflow = "hidden";
+				if (window.sdkConfig) {
+					window.sdkConfig.isSourcesOpen = true;
+					window.dispatchEvent(new Event("sourcesOpenChange"));
+				}
 			}
 			return;
 		}
 
-		const viewBtn = e.target.closest(".hc-viewBtn");
-		if (viewBtn) {
-			const docId = viewBtn.getAttribute("data-doc-id");
-			const docName = viewBtn.getAttribute("data-doc-name");
-			const dealId = viewBtn.getAttribute("data-deal-id");
-			downloadDocument(docId, docName, dealId, viewBtn);
+		const sourceLink = e.target.closest(".source-link");
+		if (sourceLink) {
+			e.preventDefault();
+			const url = sourceLink.getAttribute("href");
+			if (url) {
+				window.open(url, "_blank", "noopener,noreferrer");
+			}
 			return;
 		}
 
-		const showChunksBtn = e.target.closest(".hc-showChunksBtn");
-		if (showChunksBtn) {
-			const card = showChunksBtn.closest(".lc-cardCntr");
-			const chunkDiv = card.querySelector(".cc-chunksCntr");
-			const isOpen = chunkDiv.style.display === "block";
-			chunkDiv.style.display = isOpen ? "none" : "block";
-			showChunksBtn.textContent = isOpen
-				? "Show References"
-				: "Hide References";
-			if (!isOpen) {
-				card.classList.add("expanded");
-			} else {
-				card.classList.remove("expanded");
+		const downloadBtn = e.target.closest(".doc-download-btn");
+		if (downloadBtn) {
+			const docId = downloadBtn.getAttribute("data-doc-id");
+			const docName = downloadBtn.getAttribute("data-doc-name");
+			const dealId = downloadBtn.getAttribute("data-deal-id");
+
+			// Show loader and hide doc name
+			const loader = downloadBtn.querySelector(".download-loader");
+			const docNameSpan = downloadBtn.querySelector(".doc-name");
+			if (loader && docNameSpan) {
+				loader.style.display = "inline-block";
+				docNameSpan.style.display = "none";
 			}
+			downloadBtn.disabled = true;
+
+			downloadDocument(docId, docName, dealId, downloadBtn);
 			return;
 		}
 	});
@@ -456,6 +659,9 @@ export function render(
 	userIconTemplate,
 	loadingText
 ) {
+	// Reset sources open state on every render to ensure consistency
+	resetSourcesOpenState();
+
 	const html = renderBotConversation(
 		props,
 		assistantIconTemplate,
@@ -487,4 +693,4 @@ export function render(
 
 	return html;
 }
-export default { render , setupTemplates };
+export default { render, setupTemplates };
