@@ -4,6 +4,9 @@ import BotConversation from "../../chat/botAgent/getBotConversation";
 import TemplateComponents from "./index";
 import { encodeHtml } from "../../utils/helpers";
 import customMarkdownRenderer from "../utils/customMarkdownRenderer";
+import { submitFeedback } from "../../redux/actions/global.action";
+import store from "../../redux/store"
+
 
 function escapeHTML(str) {
 	if (!str) return "";
@@ -107,6 +110,96 @@ function renderQuestion(question) {
 	}
 	return "";
 }
+
+function renderFeedbackSection(conversation,sources) {
+	const messageId = conversation.messageId || 'default';
+	const existingFeedback = conversation.feedback; // Get existing feedback from conversation
+	const existingCategories = conversation.category || []; // Get existing selected categories
+	const existingComment = conversation.comment || ""; // Get existing comment
+	
+	// Default options - can be overridden by conversation.feedbackOptions
+	const defaultPositiveOptions = [
+		{ value: 'up-to-date', text: 'Up to date' },
+		{ value: 'accurate', text: 'Accurate' },
+		{ value: 'helpful', text: 'Helpful' },
+		{ value: 'followed-instructions', text: 'Followed instructions' },
+		{ value: 'good-sources', text: 'Good sources' },
+		{ value: 'other-positive', text: 'Other' }
+	];
+	
+	const defaultNegativeOptions = [
+		{ value: 'not-factually-correct', text: 'Not factually correct' },
+		{ value: 'intent-mismatch', text: 'Intent mismatch' },
+		{ value: 'delayed-response', text: 'Delayed response' },
+		{ value: 'incorrect-source', text: 'Incorrect source' },
+		{ value: 'other-negative', text: 'Other' }
+	];
+	
+	// Use conversation options if provided, otherwise use defaults
+	const positiveOptions = conversation.feedbackOptions?.positive || defaultPositiveOptions;
+	const negativeOptions = conversation.feedbackOptions?.negative || defaultNegativeOptions;
+	
+	// Helper function to render chips with pre-selected state
+	const renderChips = (options, selectedCategories = []) => {
+		return options.map(option => {
+			const isSelected = selectedCategories.includes(option.text) ? 'selected' : '';
+			return `<div class="feedback-chip ${isSelected}" data-value="${option.value}">${option.text}</div>`;
+		}).join('');
+	};
+	
+	// Determine button states based on existing feedback
+	const thumbsUpClass = existingFeedback === "like" ? "feedback-btn thumbs-up submitted positive" : "feedback-btn thumbs-up";
+	const thumbsDownClass = existingFeedback === "dislike" ? "feedback-btn thumbs-down submitted negative" : "feedback-btn thumbs-down";
+	
+	// Feedback options should only be shown when user actively clicks thumbs down, not for existing feedback
+	const feedbackOptionsDisplay = "none";
+	const negativeOptionsDisplay = "none";
+
+	
+	return `
+		<div class="feedback-section ${sources?.length === 0 ? "feedback-section-with-sources" : ""}" data-message-id="${messageId}">
+			<div class="feedback-actions">
+				<button class="${thumbsUpClass}" data-feedback-type="positive" data-message-id="${messageId}">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M7 22H4C3.46957 22 2.96086 21.7893 2.58579 21.4142C2.21071 21.0391 2 20.5304 2 20V13C2 12.4696 2.21071 11.9609 2.58579 11.5858C2.96086 11.2107 3.46957 11 4 11H7M14 9V5C14 4.20435 13.6839 3.44129 13.1213 2.87868C12.5587 2.31607 11.7956 2 11 2L7 11V22H18.28C18.7623 22.0055 19.2304 21.8364 19.5979 21.524C19.9654 21.2116 20.2077 20.7769 20.28 20.3L21.66 11.3C21.7035 11.0134 21.6842 10.7207 21.6033 10.4423C21.5225 10.1638 21.3821 9.90629 21.1919 9.68751C21.0016 9.46873 20.7661 9.29393 20.5016 9.17522C20.2371 9.0565 19.9496 8.99672 19.66 9H14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</button>
+				<button class="${thumbsDownClass}" data-feedback-type="negative" data-message-id="${messageId}">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M17 2H20C20.5304 2 21.0391 2.21071 21.4142 2.58579C21.7893 2.96086 22 3.46957 22 4V11C22 11.5304 21.7893 12.0391 21.4142 12.4142C21.0391 12.7893 20.5304 13 20 13H17M10 15V19C10 19.7956 10.3161 20.5587 10.8787 21.1213C11.4413 21.6839 12.2044 22 13 22L17 13V2H5.72C5.23773 1.99448 4.76958 2.16359 4.40211 2.47599C4.03464 2.78840 3.79227 3.22311 3.72 3.7L2.34 12.7C2.29649 12.9866 2.31583 13.2793 2.39667 13.5577C2.47751 13.8362 2.61793 14.0937 2.80814 14.3125C2.99835 14.5313 3.23394 14.7061 3.49843 14.8248C3.76291 14.9435 4.05042 15.0033 4.34 15H10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</button>
+			</div>
+			
+			<div class="feedback-options" data-message-id="${messageId}" style="display: ${feedbackOptionsDisplay};">
+				<div class="feedback-options-content">
+					<!-- COMMENTED OUT: Positive feedback container modal
+					<div class="positive-options" style="display: none;">
+						<div class="feedback-options-title">What did you like about this response? (optional)</div>
+						<div class="feedback-chips">
+							${renderChips(positiveOptions)}
+						</div>
+						<textarea class="feedback-textarea" placeholder="Additional comments.." rows="3"></textarea>
+					</div>
+					-->
+					
+					<div class="negative-options" style="display: ${negativeOptionsDisplay};">
+						<div class="feedback-options-title">What didn't you like about this response? (optional)</div>
+						<div class="feedback-chips">
+							${renderChips(negativeOptions, existingCategories)}
+						</div>
+						<textarea class="feedback-textarea" placeholder="Additional comments.." rows="3">${existingComment}</textarea>
+					</div>
+					
+					<div class="feedback-actions-bottom">
+						<button class="feedback-submit-btn" data-message-id="${messageId}" disabled>Submit</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	`;
+}
+
 function renderAssistantQuestion(conversation, assistantIconTemplate) {
 	const { question, thoughts } = conversation;
 	const sources =
@@ -134,7 +227,10 @@ function renderAssistantQuestion(conversation, assistantIconTemplate) {
                 <div class="message-text">
                     ${thoughts?.length > 0 ? renderThoughts(conversation) : ""}
                     ${renderQuestion(questionContent)}
-					${sourcesHtml}
+					<div class="bottom-container">
+						${sourcesHtml}
+						${question ? renderFeedbackSection(conversation,sources) : ""}
+					</div>
                 </div>
             </div>`;
 	}
@@ -493,6 +589,245 @@ function resetSourcesOpenState() {
 		window.dispatchEvent(new Event("sourcesOpenChange"));
 	}
 }
+const submitUserFeedbackBot = async ({messageId,payload}) => {
+    const state = store.getState().global    
+    if(state?.enableDebugging){        
+        console.log(`
+            boardId: ${state.activeBoardId}
+            messageId: ${messageId}
+            Payload: ${payload}
+            state: ${state}
+        `);
+    }
+    const response = await store.dispatch(submitFeedback({ boardId: state.activeBoardId, messageId:messageId,payload: payload }));
+    return response;
+}
+
+function updateSubmitButtonState(feedbackSection) {
+	const activeBtn = feedbackSection.querySelector(".feedback-btn.active");
+	const submitBtn = feedbackSection.querySelector(".feedback-submit-btn");
+	
+	if (!activeBtn || !submitBtn) return;
+	
+	const feedbackType = activeBtn.getAttribute("data-feedback-type");
+	const feedbackOptions = feedbackSection.querySelector(".feedback-options");
+	const activeOptionsDiv = feedbackType === "positive" 
+		? feedbackOptions.querySelector(".positive-options")
+		: feedbackOptions.querySelector(".negative-options");
+	
+	const hasSelectedChips = activeOptionsDiv.querySelectorAll(".feedback-chip.selected").length > 0;
+	const hasTextareaContent = activeOptionsDiv.querySelector(".feedback-textarea").value.trim().length > 0;
+	
+	// Enable submit button if user has selected chips or entered text
+	if (hasSelectedChips || hasTextareaContent) {
+		submitBtn.classList.add("active");
+		submitBtn.disabled = false;
+	} else {
+		submitBtn.classList.remove("active");
+		submitBtn.disabled = true;
+	}
+}
+
+function handleFeedback(feedbackType, messageId, feedbackSection) {
+	// Check if feedback already exists for this conversation
+	const feedbackBtn = feedbackSection.querySelector(`.feedback-btn[data-feedback-type="${feedbackType}"]`);
+	const isAlreadySubmitted = feedbackBtn.classList.contains('submitted');
+	
+	// Handle positive feedback - direct API call
+	if (feedbackType === "positive") {
+		const cId = messageId;
+
+		// If already submitted, handle undo
+		if (isAlreadySubmitted) {
+			const undoPayload = { "action": "undo" };
+			
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
+				feedbackBtn.classList.remove("submitted", "positive");
+			}).catch(error => {
+				console.error("Error undoing positive feedback:", error);
+			});
+			return;
+		}
+
+		// If dislike is already submitted, undo it first
+		const dislikeBtn = feedbackSection.querySelector('.feedback-btn[data-feedback-type="negative"]');
+		if (dislikeBtn && dislikeBtn.classList.contains('submitted')) {
+			const undoPayload = { "action": "undo" };
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
+				dislikeBtn.classList.remove("submitted", "negative");
+				
+				// Hide and reset the feedback options
+				const feedbackOptions = feedbackSection.querySelector(".feedback-options");
+				const negativeOptions = feedbackOptions.querySelector(".negative-options");
+				feedbackOptions.style.display = "none";
+				negativeOptions.style.display = "none";
+				
+				// Reset form
+				negativeOptions.querySelectorAll(".feedback-chip").forEach(chip => {
+					chip.classList.remove("selected");
+				});
+				negativeOptions.querySelector(".feedback-textarea").value = "";
+				
+				// Now submit the positive feedback
+				const feedBackPayload = {
+					feedback: "like",
+					comment: ""
+				}
+				submitUserFeedbackBot({ messageId: cId, payload: feedBackPayload }).then(response => {
+					window.dispatchEvent(new Event("feedbackSubmitted"));
+					feedbackBtn.classList.add("submitted", "positive");
+				}).catch(error => {
+					console.error("Error submitting positive feedback:", error);
+				});
+			}).catch(error => {
+				console.error("Error undoing negative feedback:", error);
+			});
+			return;
+		}
+
+		const feedBackPayload = {
+			feedback: "like",
+			comment: ""
+		}
+		submitUserFeedbackBot({ messageId: cId, payload: feedBackPayload }).then(response => {
+			window.dispatchEvent(new Event("feedbackSubmitted"));
+			feedbackBtn.classList.add("submitted", "positive");
+		}).catch(error => {
+			console.error("Error submitting positive feedback:", error);
+		});
+		return;
+	}
+	
+	// Handle negative feedback - show modal first or undo if already submitted
+	if (feedbackType === "negative") {
+		// If already submitted, handle undo
+		if (isAlreadySubmitted) {
+			const cId = messageId;
+			const undoPayload = { "action": "undo" };
+			
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
+				window.dispatchEvent(new Event("feedbackSubmitted"));
+				console.log("Negative feedback undo successful:", response);
+				feedbackBtn.classList.remove("submitted", "negative");
+				
+				// Hide and reset the feedback options
+				const feedbackOptions = feedbackSection.querySelector(".feedback-options");
+				const negativeOptions = feedbackOptions.querySelector(".negative-options");
+				feedbackOptions.style.display = "none";
+				negativeOptions.style.display = "none";
+				
+				// Reset form
+				negativeOptions.querySelectorAll(".feedback-chip").forEach(chip => {
+					chip.classList.remove("selected");
+				});
+				negativeOptions.querySelector(".feedback-textarea").value = "";
+				
+			}).catch(error => {
+				console.error("Error undoing negative feedback:", error);
+			});
+			return;
+		}
+
+		// If like is already submitted, undo it first
+		const likeBtn = feedbackSection.querySelector('.feedback-btn[data-feedback-type="positive"]');
+		if (likeBtn && likeBtn.classList.contains('submitted')) {
+			const cId = messageId;
+			const undoPayload = { "action": "undo" };
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
+				likeBtn.classList.remove("submitted", "positive");
+				
+				// Now show the negative feedback options
+				const feedbackOptions = feedbackSection.querySelector(".feedback-options");
+				const negativeOptions = feedbackOptions.querySelector(".negative-options");
+				
+				// Reset other feedback buttons in the same section
+				feedbackSection.querySelectorAll(".feedback-btn").forEach(btn => {
+					btn.classList.remove("active", "positive", "negative");
+				});
+				
+				// Set active state
+				feedbackBtn.classList.add("active", "negative");
+				negativeOptions.style.display = "block";
+				
+				// Show feedback options
+				feedbackOptions.style.display = "block";
+				
+				// Update submit button state
+				updateSubmitButtonState(feedbackSection);
+			}).catch(error => {
+				console.error("Error undoing positive feedback:", error);
+			});
+			return;
+		}
+
+		const feedbackOptions = feedbackSection.querySelector(".feedback-options");
+		const negativeOptions = feedbackOptions.querySelector(".negative-options");
+		
+		// Reset other feedback buttons in the same section
+		feedbackSection.querySelectorAll(".feedback-btn").forEach(btn => {
+			btn.classList.remove("active", "positive", "negative");
+		});
+		
+		// Set active state
+		feedbackBtn.classList.add("active", "negative");
+		negativeOptions.style.display = "block";
+		
+		// Show feedback options
+		feedbackOptions.style.display = "block";
+		
+		// Update submit button state
+		updateSubmitButtonState(feedbackSection);
+		return;
+	}
+}
+
+function submitNegativeFeedback(messageId, feedbackSection) {
+	const feedbackOptions = feedbackSection.querySelector(".feedback-options");
+	const negativeOptions = feedbackOptions.querySelector(".negative-options");
+	
+	// Collect selected chip texts
+	const selectedCategories = [];
+	negativeOptions.querySelectorAll(".feedback-chip.selected").forEach(chip => {
+		selectedCategories.push(chip.textContent.trim());
+	});
+	
+	// Get textarea value
+	const comment = negativeOptions.querySelector(".feedback-textarea").value.trim();
+	
+	// Create payload
+	const dislikePayload = {
+		feedback: "dislike",
+		category: selectedCategories,
+		comment: comment
+	};
+	
+	const cId = messageId;
+
+	submitUserFeedbackBot({ messageId: cId, payload: dislikePayload }).then(response => {
+		console.log("Negative feedback submitted:", response);
+		window.dispatchEvent(new Event("feedbackSubmitted"));
+	
+		// Hide feedback options modal
+		feedbackOptions.style.display = "none";
+		negativeOptions.style.display = "none";
+		
+		// Add submitted state to the button
+		const feedbackBtn = feedbackSection.querySelector('.feedback-btn[data-feedback-type="negative"]');
+		feedbackBtn.classList.remove("active");
+		feedbackBtn.classList.add("submitted", "negative");
+		
+		// Reset form for next use
+		negativeOptions.querySelectorAll(".feedback-chip").forEach(chip => {
+			chip.classList.remove("selected");
+		});
+		negativeOptions.querySelector(".feedback-textarea").value = "";
+		
+	}).catch(error => {
+		console.error("Error submitting negative feedback:", error);
+	});
+	
+	return;
+}
 
 function setupSourcesAccordionListeners() {
 	const wrapper = document.querySelector(".bot-conversation-wrapper");
@@ -617,6 +952,84 @@ function setupSourcesAccordionListeners() {
 
 			downloadDocument(docId, docName, dealId, downloadBtn);
 			return;
+		}
+
+		// Feedback button handlers
+		const feedbackBtn = e.target.closest(".feedback-btn");
+		if (feedbackBtn) {
+			e.preventDefault();
+			const messageId = feedbackBtn.getAttribute("data-message-id");
+			const feedbackType = feedbackBtn.getAttribute("data-feedback-type");
+			const feedbackSection = feedbackBtn.closest(".feedback-section");
+			
+			// Use the refactored handleFeedback function
+			handleFeedback(feedbackType, messageId, feedbackSection);
+			return;
+		}
+
+		// Feedback chip handlers
+		const feedbackChip = e.target.closest(".feedback-chip");
+		if (feedbackChip) {
+			e.preventDefault();
+			feedbackChip.classList.toggle("selected");
+			
+			// Update submit button state
+			const feedbackSection = feedbackChip.closest(".feedback-section");
+			updateSubmitButtonState(feedbackSection);
+			return;
+		}
+
+		// Feedback submit handler
+		const submitBtn = e.target.closest(".feedback-submit-btn");
+		if (submitBtn) {
+			e.preventDefault();
+			const messageId = submitBtn.getAttribute("data-message-id");
+			const feedbackSection = document.querySelector(`.feedback-section[data-message-id="${messageId}"]`);
+			
+			// Use the refactored submitNegativeFeedback function
+			submitNegativeFeedback(messageId, feedbackSection);
+			return;
+		}
+	});
+
+	// Add textarea input listener for feedback
+	wrapper.addEventListener("input", function (e) {
+		const textarea = e.target.closest(".feedback-textarea");
+		if (textarea) {
+			const feedbackSection = textarea.closest(".feedback-section");
+			updateSubmitButtonState(feedbackSection);
+		}
+	});
+
+	// Add document click listener to close feedback options when clicking outside
+	document.addEventListener("click", function (e) {
+		// Check if click is outside any feedback options
+		const feedbackOptions = e.target.closest(".feedback-options");
+		const feedbackBtn = e.target.closest(".feedback-btn");
+		
+		// If clicked outside feedback options and not on a feedback button
+		if (!feedbackOptions && !feedbackBtn) {
+			// Close all open feedback options
+			document.querySelectorAll(".feedback-options").forEach(options => {
+				if (options.style.display === "block") {
+					options.style.display = "none";
+					
+					// Reset the associated feedback button state
+					const feedbackSection = options.closest(".feedback-section");
+					const activeBtn = feedbackSection.querySelector(".feedback-btn.active");
+					if (activeBtn) {
+						activeBtn.classList.remove("active", "positive", "negative");
+					}
+					
+					// Reset form
+					options.querySelectorAll(".feedback-chip").forEach(chip => {
+						chip.classList.remove("selected");
+					});
+					options.querySelectorAll(".feedback-textarea").forEach(textarea => {
+						textarea.value = "";
+					});
+				}
+			});
 		}
 	});
 }
