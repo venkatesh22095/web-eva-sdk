@@ -201,6 +201,8 @@ function renderFeedbackSection(conversation,sources) {
 }
 
 function renderAssistantQuestion(conversation, assistantIconTemplate) {
+    let showFeedbackOption = window.sdkConfig.showFeedbackOption;
+
 	const { question, thoughts } = conversation;
 	const sources =
 		question &&
@@ -229,7 +231,7 @@ function renderAssistantQuestion(conversation, assistantIconTemplate) {
                     ${renderQuestion(questionContent)}
 					<div class="bottom-container">
 						${sourcesHtml}
-						${question ? renderFeedbackSection(conversation,sources) : ""}
+						${question && showFeedbackOption ? renderFeedbackSection(conversation,sources) : ""}
 					</div>
                 </div>
             </div>`;
