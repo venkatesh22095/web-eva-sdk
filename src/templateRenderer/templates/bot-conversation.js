@@ -5,8 +5,7 @@ import TemplateComponents from "./index";
 import { encodeHtml } from "../../utils/helpers";
 import customMarkdownRenderer from "../utils/customMarkdownRenderer";
 import { submitFeedback } from "../../redux/actions/global.action";
-import store from "../../redux/store"
-
+import store from "../../redux/store";
 
 function escapeHTML(str) {
 	if (!str) return "";
@@ -104,58 +103,243 @@ function renderThoughts(conversation) {
   `;
 }
 
-function renderQuestion(question) {
+// Helper to walk a DOM node and replace [n] references in all text nodes with tooltip spans
+function replaceReferencesWithTooltips(rootNode, sources) {
+	function walk(node) {
+		if (node.nodeType === Node.TEXT_NODE) {
+			const regex = /\[(\d+)\]/g;
+			let match,
+				lastIndex = 0,
+				result = [];
+			const text = node.textContent;
+			let firstReferenceProcessed = false;
+
+			while ((match = regex.exec(text)) !== null) {
+				const idx = parseInt(match[1], 10) - 1;
+				const source = sources[idx];
+				result.push(
+					document.createTextNode(text.slice(lastIndex, match.index))
+				);
+				if (source) {
+					const docName = source.reference?.document_name || "";
+					const span = document.createElement("span");
+					span.className = "bc-source-ref";
+					span.setAttribute("data-source-idx", idx);
+
+					// Create tooltip container with proper isolation
+					const tooltip = document.createElement("div");
+					tooltip.className = "bc-source-tooltip";
+					tooltip.style.cssText = `
+						display: none;
+						position: fixed;
+						z-index: 9999;
+						pointer-events: auto;
+						opacity: 0;
+						visibility: hidden;
+						transition: opacity 0.2s ease, visibility 0.2s ease;
+					`;
+
+					// Build tooltip content with proper escaping
+					let tooltipContent = `<div class="source-header"><span class="source-index">${match[1]}</span>`;
+					if (source.title) {
+						tooltipContent += `<span class="source-title">${escapeHTML(source.title)}</span>`;
+					}
+					tooltipContent += `</div>`;
+
+					if (source.chunk) {
+						tooltipContent += `<div class="source-content">${escapeHTML(source.chunk)}</div>`;
+					}
+
+					// Check if source has URL or needs download
+					const ref = parseReference(source.reference);
+					const hasUrl =
+						(ref.url && typeof ref.url === "string") ||
+						ref.isDirectUrl;
+
+					if (hasUrl) {
+						tooltipContent += `<div class="source-footer">
+							<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
+								<span class="url-icon-container url"></span>
+								<span class="url-name">${encodeHtml(ref.url)}</span>
+							</a>
+						</div>`;
+					} else {
+						tooltipContent += `<div class="source-footer">
+							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}">
+								<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
+								<span class="doc-name">${encodeHtml(docName)}</span>
+								<span class="download-loader" style="display: none;"></span>
+							</button>
+						</div>`;
+					}
+
+					tooltip.innerHTML = tooltipContent;
+
+					// Create bordered reference number instead of plain text with brackets
+					const refNumber = document.createElement("span");
+					refNumber.className = "bc-ref-number";
+					refNumber.textContent = match[1];
+					span.appendChild(refNumber);
+					span.appendChild(tooltip);
+
+					// For the first occurrence of reference [1], hide the original and create a visible duplicate
+					if (!firstReferenceProcessed && idx === 0) {
+						// Hide the original first reference
+						span.style.display = "none";
+						result.push(span);
+
+						// Create visible duplicate
+						const duplicateSpan = document.createElement("span");
+						duplicateSpan.className = "bc-source-ref";
+						duplicateSpan.setAttribute("data-source-idx", idx);
+
+						// Create duplicate tooltip
+						const duplicateTooltip = document.createElement("div");
+						duplicateTooltip.className = "bc-source-tooltip";
+						duplicateTooltip.style.cssText = tooltip.style.cssText;
+						duplicateTooltip.innerHTML = tooltipContent;
+
+						// Create duplicate reference number
+						const duplicateRefNumber =
+							document.createElement("span");
+						duplicateRefNumber.className = "bc-ref-number";
+						duplicateRefNumber.textContent = match[1];
+						duplicateSpan.appendChild(duplicateRefNumber);
+						duplicateSpan.appendChild(duplicateTooltip);
+
+						result.push(duplicateSpan);
+						firstReferenceProcessed = true;
+					} else {
+						// For all other references, just add them normally
+						result.push(span);
+					}
+				} else {
+					result.push(document.createTextNode(match[0]));
+				}
+				lastIndex = regex.lastIndex;
+			}
+			if (lastIndex < text.length) {
+				result.push(document.createTextNode(text.slice(lastIndex)));
+			}
+			if (result.length) {
+				const frag = document.createDocumentFragment();
+				result.forEach((n) => frag.appendChild(n));
+				node.replaceWith(frag);
+			}
+		} else if (node.nodeType === Node.ELEMENT_NODE) {
+			Array.from(node.childNodes).forEach(walk);
+		}
+	}
+	walk(rootNode);
+}
+
+// Helper to inject SVG icons for all tooltips
+function injectTooltipIcons(rootNode, sources) {
+	// Skip if this rootNode is part of a tooltip
+	if (rootNode.closest && rootNode.closest(".bc-source-tooltip")) {
+		return;
+	}
+
+	rootNode.querySelectorAll(".bc-source-ref").forEach((ref) => {
+		// Skip if this ref is inside a tooltip
+		if (ref.closest(".bc-source-tooltip")) {
+			return;
+		}
+
+		const idx = parseInt(ref.getAttribute("data-source-idx"), 10);
+		const source = sources[idx];
+		if (source) {
+			const docName = source.reference?.document_name || "";
+			const docIcon = getDocumentIcon(docName);
+			// Only inject SVG icons into icon containers that are NOT in tooltip footers
+			const iconContainer = ref.querySelector(".doc-icon-container");
+			if (iconContainer) {
+				// Check if this icon container is inside a tooltip
+				const isInTooltip = iconContainer.closest(".bc-source-tooltip");
+				const isInTooltipFooter =
+					iconContainer.closest(".source-footer");
+
+				// Only inject if NOT in tooltip or tooltip footer
+				if (!isInTooltip && !isInTooltipFooter) {
+					iconContainer.innerHTML = "";
+					if (docIcon) {
+						const temp = document.createElement("div");
+						temp.innerHTML = docIcon;
+						const svg = temp.querySelector("svg");
+						if (svg) iconContainer.appendChild(svg);
+					}
+				}
+			}
+		}
+	});
+}
+
+function renderQuestion(question, sources) {
 	if (question) {
+		if (sources && Array.isArray(sources) && sources.length > 0) {
+			return renderContentWithSourceTooltips(question, sources);
+		}
 		return `${customMarkdownRenderer(escapeHTML(question))}`;
 	}
 	return "";
 }
 
-function renderFeedbackSection(conversation,sources) {
-	const messageId = conversation.messageId || 'default';
+function renderFeedbackSection(conversation, sources) {
+	const messageId = conversation.messageId || "default";
 	const existingFeedback = conversation.feedback; // Get existing feedback from conversation
 	const existingCategories = conversation.category || []; // Get existing selected categories
 	const existingComment = conversation.comment || ""; // Get existing comment
-	
+
 	// Default options - can be overridden by conversation.feedbackOptions
 	const defaultPositiveOptions = [
-		{ value: 'up-to-date', text: 'Up to date' },
-		{ value: 'accurate', text: 'Accurate' },
-		{ value: 'helpful', text: 'Helpful' },
-		{ value: 'followed-instructions', text: 'Followed instructions' },
-		{ value: 'good-sources', text: 'Good sources' },
-		{ value: 'other-positive', text: 'Other' }
+		{ value: "up-to-date", text: "Up to date" },
+		{ value: "accurate", text: "Accurate" },
+		{ value: "helpful", text: "Helpful" },
+		{ value: "followed-instructions", text: "Followed instructions" },
+		{ value: "good-sources", text: "Good sources" },
+		{ value: "other-positive", text: "Other" },
 	];
-	
+
 	const defaultNegativeOptions = [
-		{ value: 'not-factually-correct', text: 'Not factually correct' },
-		{ value: 'intent-mismatch', text: 'Intent mismatch' },
-		{ value: 'delayed-response', text: 'Delayed response' },
-		{ value: 'incorrect-source', text: 'Incorrect source' },
-		{ value: 'other-negative', text: 'Other' }
+		{ value: "not-factually-correct", text: "Not factually correct" },
+		{ value: "intent-mismatch", text: "Intent mismatch" },
+		{ value: "delayed-response", text: "Delayed response" },
+		{ value: "incorrect-source", text: "Incorrect source" },
+		{ value: "other-negative", text: "Other" },
 	];
-	
+
 	// Use conversation options if provided, otherwise use defaults
-	const positiveOptions = conversation.feedbackOptions?.positive || defaultPositiveOptions;
-	const negativeOptions = conversation.feedbackOptions?.negative || defaultNegativeOptions;
-	
+	const positiveOptions =
+		conversation.feedbackOptions?.positive || defaultPositiveOptions;
+	const negativeOptions =
+		conversation.feedbackOptions?.negative || defaultNegativeOptions;
+
 	// Helper function to render chips with pre-selected state
 	const renderChips = (options, selectedCategories = []) => {
-		return options.map(option => {
-			const isSelected = selectedCategories.includes(option.text) ? 'selected' : '';
-			return `<div class="feedback-chip ${isSelected}" data-value="${option.value}">${option.text}</div>`;
-		}).join('');
+		return options
+			.map((option) => {
+				const isSelected = selectedCategories.includes(option.text)
+					? "selected"
+					: "";
+				return `<div class="feedback-chip ${isSelected}" data-value="${option.value}">${option.text}</div>`;
+			})
+			.join("");
 	};
-	
+
 	// Determine button states based on existing feedback
-	const thumbsUpClass = existingFeedback === "like" ? "feedback-btn thumbs-up submitted positive" : "feedback-btn thumbs-up";
-	const thumbsDownClass = existingFeedback === "dislike" ? "feedback-btn thumbs-down submitted negative" : "feedback-btn thumbs-down";
-	
+	const thumbsUpClass =
+		existingFeedback === "like"
+			? "feedback-btn thumbs-up submitted positive"
+			: "feedback-btn thumbs-up";
+	const thumbsDownClass =
+		existingFeedback === "dislike"
+			? "feedback-btn thumbs-down submitted negative"
+			: "feedback-btn thumbs-down";
+
 	// Feedback options should only be shown when user actively clicks thumbs down, not for existing feedback
 	const feedbackOptionsDisplay = "none";
 	const negativeOptionsDisplay = "none";
 
-	
 	return `
 		<div class="feedback-section ${sources?.length === 0 ? "feedback-section-with-sources" : ""}" data-message-id="${messageId}">
 			<div class="feedback-actions">
@@ -201,7 +385,7 @@ function renderFeedbackSection(conversation,sources) {
 }
 
 function renderAssistantQuestion(conversation, assistantIconTemplate) {
-    let showFeedbackOption = window.sdkConfig.showFeedbackOption;
+	let showFeedbackOption = window.sdkConfig.showFeedbackOption;
 
 	const { question, thoughts } = conversation;
 	const sources =
@@ -218,23 +402,52 @@ function renderAssistantQuestion(conversation, assistantIconTemplate) {
 			typeof question === "object" && question !== null
 				? question.content
 				: question;
+
+		let mainContent = questionContent;
 		if (typeof questionContent === "string") {
 			const refIndex = questionContent.indexOf("#### REFERENCES");
 			if (refIndex !== -1) {
-				questionContent = questionContent.substring(0, refIndex).trim();
+				mainContent = questionContent.substring(0, refIndex).trim();
 			}
 		}
-		return `<div class="bc-question-wrapper">
-                ${assistantIconTemplate}
-                <div class="message-text">
-                    ${thoughts?.length > 0 ? renderThoughts(conversation) : ""}
-                    ${renderQuestion(questionContent)}
-					<div class="bottom-container">
-						${sourcesHtml}
-						${question && showFeedbackOption ? renderFeedbackSection(conversation,sources) : ""}
-					</div>
-                </div>
-            </div>`;
+
+		const wrapper = document.createElement("div");
+		wrapper.className = "bc-question-wrapper";
+		wrapper.innerHTML = `
+			${assistantIconTemplate}
+			<div class="message-text">
+				${thoughts?.length > 0 ? renderThoughts(conversation) : ""}
+				<div class="bc-tooltip-content"></div>
+				<div class="bottom-container">
+					${sourcesHtml}
+					${question && showFeedbackOption ? renderFeedbackSection(conversation, sources) : ""}
+				</div>
+			</div>
+		`;
+		const tooltipContainer = wrapper.querySelector(".bc-tooltip-content");
+		if (tooltipContainer) {
+			const tempDiv = document.createElement("div");
+			tempDiv.innerHTML = customMarkdownRenderer(escapeHTML(mainContent));
+			replaceReferencesWithTooltips(tempDiv, sources);
+			injectTooltipIcons(tempDiv, sources);
+			tooltipContainer.replaceChildren(...tempDiv.childNodes);
+
+			// Set up tooltip listeners immediately after content is rendered
+			requestAnimationFrame(() => {
+				// Force reset the tooltip listeners flag to ensure first reference gets processed
+				window.tooltipListenersAttached = false;
+				setupSourceTooltipListeners();
+			});
+		}
+		// Attach tooltip listeners if defined
+		if (typeof setupSourceTooltipListeners === "function") {
+			setTimeout(() => {
+				// Force reset the tooltip listeners flag to ensure first reference gets processed
+				window.tooltipListenersAttached = false;
+				setupSourceTooltipListeners();
+			}, 0);
+		}
+		return { html: wrapper.outerHTML, isHtml: true };
 	}
 }
 
@@ -258,10 +471,15 @@ function createConversationHTML(
 		let content;
 
 		if (conversation?.templateType === "search_answer") {
-			content = renderAssistantQuestion(
+			const result = renderAssistantQuestion(
 				conversation,
 				assistantIconTemplate
 			);
+			if (result && result.isHtml) {
+				content = result.html;
+			} else {
+				content = result;
+			}
 			if (conversation?.answer) {
 				content += `<br/>`;
 				content += renderUserQuestion(
@@ -282,18 +500,28 @@ function createConversationHTML(
 		return content;
 	} else {
 		if (conversation?.templateType === "search_answer") {
+			const result = renderAssistantQuestion(
+				conversation,
+				assistantIconTemplate
+			);
+			let content = result && result.isHtml ? result.html : result;
 			return `
                 <div class="completed">
-					${renderAssistantQuestion(conversation, assistantIconTemplate)}
+					${content}
 					<br/>
 					${renderUserQuestion(conversation?.answer, userIconTemplate)}
 					<br/>
                 </div>
             `;
 		} else if (conversation?.templateType === "bot_template") {
+			const result = renderAssistantQuestion(
+				conversation,
+				assistantIconTemplate
+			);
+			let content = result && result.isHtml ? result.html : result;
 			return `
 				<div>
-					${renderAssistantQuestion(conversation, assistantIconTemplate)}
+					${content}
 					<br/>
 					${renderUserQuestion(conversation?.answer, userIconTemplate)}
 					<br/>
@@ -406,13 +634,21 @@ function getDocumentIcon(docName = "") {
 	</svg>`;
 }
 
+function getDocumentIconClass(docName = "") {
+	const extension = docName.split(".").pop()?.toLowerCase();
+	if (["doc", "docx"].includes(extension)) return "doc";
+	if (["xlsx", "xls", "csv"].includes(extension)) return "xls";
+	if (extension === "pdf") return "pdf";
+	return "generic";
+}
+
 function renderSourcesAccordion(sources = []) {
 	if (!sources.length) return "";
 
 	const sourceCount = sources.length;
 	const sourcesText = `${sourceCount} ${sourceCount === 1 ? "Source" : "Sources"}`;
 
-	return `
+	let html = `
 		<div class="sourcesAccordionCntr">
 			<button class="sac-toggleCntr sources-toggle-btn">
 				<span class="tc-toggleText">
@@ -429,7 +665,6 @@ function renderSourcesAccordion(sources = []) {
 				<div class="sources-popup-content">
 					<div class="sources-popup-header">
 						<div class="header-left">
-
 							<h3>${sourcesText}</h3>
 						</div>
 						<button class="sources-popup-close">
@@ -446,37 +681,29 @@ function renderSourcesAccordion(sources = []) {
 									(ref.url && typeof ref.url === "string") ||
 									ref.isDirectUrl;
 								const docName = ref.document_name || "";
-								const docIcon = getDocumentIcon(docName);
-
 								return `
-								<div class="source-item">
-									<div class="source-header">
-										<span class="source-index">${idx + 1}</span>
-										${source.title ? `<span class="source-title">${encodeHtml(source.title)}</span>` : ""}
+									<div class="source-item">
+										<div class="source-header">
+											<span class="source-index">${idx + 1}</span>
+											${source.title ? `<span class="source-title">${encodeHtml(source.title)}</span>` : ""}
+										</div>
+										${source.chunk ? `<div class="source-content">${customMarkdownRenderer(escapeHTML(source.chunk))}</div>` : ""}
+										<div class="source-footer">
+											${
+												hasUrl
+													? `<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
+														<span class="url-icon-container url"></span>
+														<span class="url-name">${encodeHtml(ref.url)}</span>
+													</a>`
+													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}">
+														<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
+														<span class="doc-name">${encodeHtml(docName)}</span>
+														<span class="download-loader" style="display: none;"></span>
+													</button>`
+											}
+										</div>
 									</div>
-									${source.chunk ? `<div class="source-content">${customMarkdownRenderer(escapeHTML(source.chunk))}</div>` : ""}
-									<div class="source-footer">
-										${
-											hasUrl
-												? `<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
-												<span class="url-icon-container">
-													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-														<path d="M1 6H11M1 6C1 8.76142 3.23858 11 6 11M1 6C1 3.23858 3.23858 1 6 1M11 6C11 8.76142 8.76142 11 6 11M11 6C11 3.23858 8.76142 1 6 1M6 1C7.25064 2.36918 7.96138 4.14602 8 6C7.96138 7.85398 7.25064 9.63082 6 11M6 1C4.74936 2.36918 4.03862 4.14602 4 6C4.03862 7.85398 4.74936 9.63082 6 11" stroke="#EC0100" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
-													</svg>
-												</span>
-												<span class="url-name">${encodeHtml(ref.url)}</span>
-											</a>`
-												: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}">
-												<span class="doc-icon-container">
-													${docIcon}
-												</span>
-												<span class="doc-name">${encodeHtml(docName)}</span>
-												<span class="download-loader" style="display: none;"></span>
-											</button>`
-										}
-									</div>
-								</div>
-							`;
+								`;
 							})
 							.join("")}
 					</div>
@@ -484,6 +711,8 @@ function renderSourcesAccordion(sources = []) {
 			</div>
 		</div>
 	`;
+
+	return html;
 }
 
 function handleSubmit(conversation, input, props) {
@@ -591,35 +820,45 @@ function resetSourcesOpenState() {
 		window.dispatchEvent(new Event("sourcesOpenChange"));
 	}
 }
-const submitUserFeedbackBot = async ({messageId,payload}) => {
-    const state = store.getState().global    
-    if(state?.enableDebugging){        
-        console.log(`
+const submitUserFeedbackBot = async ({ messageId, payload }) => {
+	const state = store.getState().global;
+	if (state?.enableDebugging) {
+		console.log(`
             boardId: ${state.activeBoardId}
             messageId: ${messageId}
             Payload: ${payload}
             state: ${state}
         `);
-    }
-    const response = await store.dispatch(submitFeedback({ boardId: state.activeBoardId, messageId:messageId,payload: payload }));
-    return response;
-}
+	}
+	const response = await store.dispatch(
+		submitFeedback({
+			boardId: state.activeBoardId,
+			messageId: messageId,
+			payload: payload,
+		})
+	);
+	return response;
+};
 
 function updateSubmitButtonState(feedbackSection) {
 	const activeBtn = feedbackSection.querySelector(".feedback-btn.active");
 	const submitBtn = feedbackSection.querySelector(".feedback-submit-btn");
-	
+
 	if (!activeBtn || !submitBtn) return;
-	
+
 	const feedbackType = activeBtn.getAttribute("data-feedback-type");
 	const feedbackOptions = feedbackSection.querySelector(".feedback-options");
-	const activeOptionsDiv = feedbackType === "positive" 
-		? feedbackOptions.querySelector(".positive-options")
-		: feedbackOptions.querySelector(".negative-options");
-	
-	const hasSelectedChips = activeOptionsDiv.querySelectorAll(".feedback-chip.selected").length > 0;
-	const hasTextareaContent = activeOptionsDiv.querySelector(".feedback-textarea").value.trim().length > 0;
-	
+	const activeOptionsDiv =
+		feedbackType === "positive"
+			? feedbackOptions.querySelector(".positive-options")
+			: feedbackOptions.querySelector(".negative-options");
+
+	const hasSelectedChips =
+		activeOptionsDiv.querySelectorAll(".feedback-chip.selected").length > 0;
+	const hasTextareaContent =
+		activeOptionsDiv.querySelector(".feedback-textarea").value.trim()
+			.length > 0;
+
 	// Enable submit button if user has selected chips or entered text
 	if (hasSelectedChips || hasTextareaContent) {
 		submitBtn.classList.add("active");
@@ -632,151 +871,196 @@ function updateSubmitButtonState(feedbackSection) {
 
 function handleFeedback(feedbackType, messageId, feedbackSection) {
 	// Check if feedback already exists for this conversation
-	const feedbackBtn = feedbackSection.querySelector(`.feedback-btn[data-feedback-type="${feedbackType}"]`);
-	const isAlreadySubmitted = feedbackBtn.classList.contains('submitted');
-	
+	const feedbackBtn = feedbackSection.querySelector(
+		`.feedback-btn[data-feedback-type="${feedbackType}"]`
+	);
+	const isAlreadySubmitted = feedbackBtn.classList.contains("submitted");
+
 	// Handle positive feedback - direct API call
 	if (feedbackType === "positive") {
 		const cId = messageId;
 
 		// If already submitted, handle undo
 		if (isAlreadySubmitted) {
-			const undoPayload = { "action": "undo" };
-			
-			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
-				feedbackBtn.classList.remove("submitted", "positive");
-			}).catch(error => {
-				console.error("Error undoing positive feedback:", error);
-			});
+			const undoPayload = { action: "undo" };
+
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload })
+				.then((response) => {
+					feedbackBtn.classList.remove("submitted", "positive");
+				})
+				.catch((error) => {
+					console.error("Error undoing positive feedback:", error);
+				});
 			return;
 		}
 
 		// If dislike is already submitted, undo it first
-		const dislikeBtn = feedbackSection.querySelector('.feedback-btn[data-feedback-type="negative"]');
-		if (dislikeBtn && dislikeBtn.classList.contains('submitted')) {
-			const undoPayload = { "action": "undo" };
-			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
-				dislikeBtn.classList.remove("submitted", "negative");
-				
-				// Hide and reset the feedback options
-				const feedbackOptions = feedbackSection.querySelector(".feedback-options");
-				const negativeOptions = feedbackOptions.querySelector(".negative-options");
-				feedbackOptions.style.display = "none";
-				negativeOptions.style.display = "none";
-				
-				// Reset form
-				negativeOptions.querySelectorAll(".feedback-chip").forEach(chip => {
-					chip.classList.remove("selected");
+		const dislikeBtn = feedbackSection.querySelector(
+			'.feedback-btn[data-feedback-type="negative"]'
+		);
+		if (dislikeBtn && dislikeBtn.classList.contains("submitted")) {
+			const undoPayload = { action: "undo" };
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload })
+				.then((response) => {
+					dislikeBtn.classList.remove("submitted", "negative");
+
+					// Hide and reset the feedback options
+					const feedbackOptions =
+						feedbackSection.querySelector(".feedback-options");
+					const negativeOptions =
+						feedbackOptions.querySelector(".negative-options");
+					feedbackOptions.style.display = "none";
+					negativeOptions.style.display = "none";
+
+					// Reset form
+					negativeOptions
+						.querySelectorAll(".feedback-chip")
+						.forEach((chip) => {
+							chip.classList.remove("selected");
+						});
+					negativeOptions.querySelector(".feedback-textarea").value =
+						"";
+
+					// Now submit the positive feedback
+					const feedBackPayload = {
+						feedback: "like",
+						comment: "",
+					};
+					submitUserFeedbackBot({
+						messageId: cId,
+						payload: feedBackPayload,
+					})
+						.then((response) => {
+							window.dispatchEvent(
+								new Event("feedbackSubmitted")
+							);
+							feedbackBtn.classList.add("submitted", "positive");
+						})
+						.catch((error) => {
+							console.error(
+								"Error submitting positive feedback:",
+								error
+							);
+						});
+				})
+				.catch((error) => {
+					console.error("Error undoing negative feedback:", error);
 				});
-				negativeOptions.querySelector(".feedback-textarea").value = "";
-				
-				// Now submit the positive feedback
-				const feedBackPayload = {
-					feedback: "like",
-					comment: ""
-				}
-				submitUserFeedbackBot({ messageId: cId, payload: feedBackPayload }).then(response => {
-					window.dispatchEvent(new Event("feedbackSubmitted"));
-					feedbackBtn.classList.add("submitted", "positive");
-				}).catch(error => {
-					console.error("Error submitting positive feedback:", error);
-				});
-			}).catch(error => {
-				console.error("Error undoing negative feedback:", error);
-			});
 			return;
 		}
 
 		const feedBackPayload = {
 			feedback: "like",
-			comment: ""
-		}
-		submitUserFeedbackBot({ messageId: cId, payload: feedBackPayload }).then(response => {
-			window.dispatchEvent(new Event("feedbackSubmitted"));
-			feedbackBtn.classList.add("submitted", "positive");
-		}).catch(error => {
-			console.error("Error submitting positive feedback:", error);
-		});
+			comment: "",
+		};
+		submitUserFeedbackBot({ messageId: cId, payload: feedBackPayload })
+			.then((response) => {
+				window.dispatchEvent(new Event("feedbackSubmitted"));
+				feedbackBtn.classList.add("submitted", "positive");
+			})
+			.catch((error) => {
+				console.error("Error submitting positive feedback:", error);
+			});
 		return;
 	}
-	
+
 	// Handle negative feedback - show modal first or undo if already submitted
 	if (feedbackType === "negative") {
 		// If already submitted, handle undo
 		if (isAlreadySubmitted) {
 			const cId = messageId;
-			const undoPayload = { "action": "undo" };
-			
-			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
-				window.dispatchEvent(new Event("feedbackSubmitted"));
-				console.log("Negative feedback undo successful:", response);
-				feedbackBtn.classList.remove("submitted", "negative");
-				
-				// Hide and reset the feedback options
-				const feedbackOptions = feedbackSection.querySelector(".feedback-options");
-				const negativeOptions = feedbackOptions.querySelector(".negative-options");
-				feedbackOptions.style.display = "none";
-				negativeOptions.style.display = "none";
-				
-				// Reset form
-				negativeOptions.querySelectorAll(".feedback-chip").forEach(chip => {
-					chip.classList.remove("selected");
+			const undoPayload = { action: "undo" };
+
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload })
+				.then((response) => {
+					window.dispatchEvent(new Event("feedbackSubmitted"));
+					console.log("Negative feedback undo successful:", response);
+					feedbackBtn.classList.remove("submitted", "negative");
+
+					// Hide and reset the feedback options
+					const feedbackOptions =
+						feedbackSection.querySelector(".feedback-options");
+					const negativeOptions =
+						feedbackOptions.querySelector(".negative-options");
+					feedbackOptions.style.display = "none";
+					negativeOptions.style.display = "none";
+
+					// Reset form
+					negativeOptions
+						.querySelectorAll(".feedback-chip")
+						.forEach((chip) => {
+							chip.classList.remove("selected");
+						});
+					negativeOptions.querySelector(".feedback-textarea").value =
+						"";
+				})
+				.catch((error) => {
+					console.error("Error undoing negative feedback:", error);
 				});
-				negativeOptions.querySelector(".feedback-textarea").value = "";
-				
-			}).catch(error => {
-				console.error("Error undoing negative feedback:", error);
-			});
 			return;
 		}
 
 		// If like is already submitted, undo it first
-		const likeBtn = feedbackSection.querySelector('.feedback-btn[data-feedback-type="positive"]');
-		if (likeBtn && likeBtn.classList.contains('submitted')) {
+		const likeBtn = feedbackSection.querySelector(
+			'.feedback-btn[data-feedback-type="positive"]'
+		);
+		if (likeBtn && likeBtn.classList.contains("submitted")) {
 			const cId = messageId;
-			const undoPayload = { "action": "undo" };
-			submitUserFeedbackBot({ messageId: cId, payload: undoPayload }).then(response => {
-				likeBtn.classList.remove("submitted", "positive");
-				
-				// Now show the negative feedback options
-				const feedbackOptions = feedbackSection.querySelector(".feedback-options");
-				const negativeOptions = feedbackOptions.querySelector(".negative-options");
-				
-				// Reset other feedback buttons in the same section
-				feedbackSection.querySelectorAll(".feedback-btn").forEach(btn => {
-					btn.classList.remove("active", "positive", "negative");
+			const undoPayload = { action: "undo" };
+			submitUserFeedbackBot({ messageId: cId, payload: undoPayload })
+				.then((response) => {
+					likeBtn.classList.remove("submitted", "positive");
+
+					// Now show the negative feedback options
+					const feedbackOptions =
+						feedbackSection.querySelector(".feedback-options");
+					const negativeOptions =
+						feedbackOptions.querySelector(".negative-options");
+
+					// Reset other feedback buttons in the same section
+					feedbackSection
+						.querySelectorAll(".feedback-btn")
+						.forEach((btn) => {
+							btn.classList.remove(
+								"active",
+								"positive",
+								"negative"
+							);
+						});
+
+					// Set active state
+					feedbackBtn.classList.add("active", "negative");
+					negativeOptions.style.display = "block";
+
+					// Show feedback options
+					feedbackOptions.style.display = "block";
+
+					// Update submit button state
+					updateSubmitButtonState(feedbackSection);
+				})
+				.catch((error) => {
+					console.error("Error undoing positive feedback:", error);
 				});
-				
-				// Set active state
-				feedbackBtn.classList.add("active", "negative");
-				negativeOptions.style.display = "block";
-				
-				// Show feedback options
-				feedbackOptions.style.display = "block";
-				
-				// Update submit button state
-				updateSubmitButtonState(feedbackSection);
-			}).catch(error => {
-				console.error("Error undoing positive feedback:", error);
-			});
 			return;
 		}
 
-		const feedbackOptions = feedbackSection.querySelector(".feedback-options");
-		const negativeOptions = feedbackOptions.querySelector(".negative-options");
-		
+		const feedbackOptions =
+			feedbackSection.querySelector(".feedback-options");
+		const negativeOptions =
+			feedbackOptions.querySelector(".negative-options");
+
 		// Reset other feedback buttons in the same section
-		feedbackSection.querySelectorAll(".feedback-btn").forEach(btn => {
+		feedbackSection.querySelectorAll(".feedback-btn").forEach((btn) => {
 			btn.classList.remove("active", "positive", "negative");
 		});
-		
+
 		// Set active state
 		feedbackBtn.classList.add("active", "negative");
 		negativeOptions.style.display = "block";
-		
+
 		// Show feedback options
 		feedbackOptions.style.display = "block";
-		
+
 		// Update submit button state
 		updateSubmitButtonState(feedbackSection);
 		return;
@@ -786,48 +1070,57 @@ function handleFeedback(feedbackType, messageId, feedbackSection) {
 function submitNegativeFeedback(messageId, feedbackSection) {
 	const feedbackOptions = feedbackSection.querySelector(".feedback-options");
 	const negativeOptions = feedbackOptions.querySelector(".negative-options");
-	
+
 	// Collect selected chip texts
 	const selectedCategories = [];
-	negativeOptions.querySelectorAll(".feedback-chip.selected").forEach(chip => {
-		selectedCategories.push(chip.textContent.trim());
-	});
-	
+	negativeOptions
+		.querySelectorAll(".feedback-chip.selected")
+		.forEach((chip) => {
+			selectedCategories.push(chip.textContent.trim());
+		});
+
 	// Get textarea value
-	const comment = negativeOptions.querySelector(".feedback-textarea").value.trim();
-	
+	const comment = negativeOptions
+		.querySelector(".feedback-textarea")
+		.value.trim();
+
 	// Create payload
 	const dislikePayload = {
 		feedback: "dislike",
 		category: selectedCategories,
-		comment: comment
+		comment: comment,
 	};
-	
+
 	const cId = messageId;
 
-	submitUserFeedbackBot({ messageId: cId, payload: dislikePayload }).then(response => {
-		console.log("Negative feedback submitted:", response);
-		window.dispatchEvent(new Event("feedbackSubmitted"));
-	
-		// Hide feedback options modal
-		feedbackOptions.style.display = "none";
-		negativeOptions.style.display = "none";
-		
-		// Add submitted state to the button
-		const feedbackBtn = feedbackSection.querySelector('.feedback-btn[data-feedback-type="negative"]');
-		feedbackBtn.classList.remove("active");
-		feedbackBtn.classList.add("submitted", "negative");
-		
-		// Reset form for next use
-		negativeOptions.querySelectorAll(".feedback-chip").forEach(chip => {
-			chip.classList.remove("selected");
+	submitUserFeedbackBot({ messageId: cId, payload: dislikePayload })
+		.then((response) => {
+			console.log("Negative feedback submitted:", response);
+			window.dispatchEvent(new Event("feedbackSubmitted"));
+
+			// Hide feedback options modal
+			feedbackOptions.style.display = "none";
+			negativeOptions.style.display = "none";
+
+			// Add submitted state to the button
+			const feedbackBtn = feedbackSection.querySelector(
+				'.feedback-btn[data-feedback-type="negative"]'
+			);
+			feedbackBtn.classList.remove("active");
+			feedbackBtn.classList.add("submitted", "negative");
+
+			// Reset form for next use
+			negativeOptions
+				.querySelectorAll(".feedback-chip")
+				.forEach((chip) => {
+					chip.classList.remove("selected");
+				});
+			negativeOptions.querySelector(".feedback-textarea").value = "";
+		})
+		.catch((error) => {
+			console.error("Error submitting negative feedback:", error);
 		});
-		negativeOptions.querySelector(".feedback-textarea").value = "";
-		
-	}).catch(error => {
-		console.error("Error submitting negative feedback:", error);
-	});
-	
+
 	return;
 }
 
@@ -963,7 +1256,7 @@ function setupSourcesAccordionListeners() {
 			const messageId = feedbackBtn.getAttribute("data-message-id");
 			const feedbackType = feedbackBtn.getAttribute("data-feedback-type");
 			const feedbackSection = feedbackBtn.closest(".feedback-section");
-			
+
 			// Use the refactored handleFeedback function
 			handleFeedback(feedbackType, messageId, feedbackSection);
 			return;
@@ -974,7 +1267,7 @@ function setupSourcesAccordionListeners() {
 		if (feedbackChip) {
 			e.preventDefault();
 			feedbackChip.classList.toggle("selected");
-			
+
 			// Update submit button state
 			const feedbackSection = feedbackChip.closest(".feedback-section");
 			updateSubmitButtonState(feedbackSection);
@@ -986,8 +1279,10 @@ function setupSourcesAccordionListeners() {
 		if (submitBtn) {
 			e.preventDefault();
 			const messageId = submitBtn.getAttribute("data-message-id");
-			const feedbackSection = document.querySelector(`.feedback-section[data-message-id="${messageId}"]`);
-			
+			const feedbackSection = document.querySelector(
+				`.feedback-section[data-message-id="${messageId}"]`
+			);
+
 			// Use the refactored submitNegativeFeedback function
 			submitNegativeFeedback(messageId, feedbackSection);
 			return;
@@ -1008,30 +1303,43 @@ function setupSourcesAccordionListeners() {
 		// Check if click is outside any feedback options
 		const feedbackOptions = e.target.closest(".feedback-options");
 		const feedbackBtn = e.target.closest(".feedback-btn");
-		
+
 		// If clicked outside feedback options and not on a feedback button
 		if (!feedbackOptions && !feedbackBtn) {
 			// Close all open feedback options
-			document.querySelectorAll(".feedback-options").forEach(options => {
-				if (options.style.display === "block") {
-					options.style.display = "none";
-					
-					// Reset the associated feedback button state
-					const feedbackSection = options.closest(".feedback-section");
-					const activeBtn = feedbackSection.querySelector(".feedback-btn.active");
-					if (activeBtn) {
-						activeBtn.classList.remove("active", "positive", "negative");
+			document
+				.querySelectorAll(".feedback-options")
+				.forEach((options) => {
+					if (options.style.display === "block") {
+						options.style.display = "none";
+
+						// Reset the associated feedback button state
+						const feedbackSection =
+							options.closest(".feedback-section");
+						const activeBtn = feedbackSection.querySelector(
+							".feedback-btn.active"
+						);
+						if (activeBtn) {
+							activeBtn.classList.remove(
+								"active",
+								"positive",
+								"negative"
+							);
+						}
+
+						// Reset form
+						options
+							.querySelectorAll(".feedback-chip")
+							.forEach((chip) => {
+								chip.classList.remove("selected");
+							});
+						options
+							.querySelectorAll(".feedback-textarea")
+							.forEach((textarea) => {
+								textarea.value = "";
+							});
 					}
-					
-					// Reset form
-					options.querySelectorAll(".feedback-chip").forEach(chip => {
-						chip.classList.remove("selected");
-					});
-					options.querySelectorAll(".feedback-textarea").forEach(textarea => {
-						textarea.value = "";
-					});
-				}
-			});
+				});
 		}
 	});
 }
@@ -1067,6 +1375,338 @@ function renderBotConversation(
     `;
 }
 
+function setupSourceTooltipListeners() {
+	// Check if listeners are already attached to prevent duplicates
+	if (window.tooltipListenersAttached) {
+		// Even if already attached, ensure all current references have listeners
+		document.querySelectorAll(".bc-source-ref").forEach((ref) => {
+			if (!ref._tooltipListenersAttached) {
+				attachTooltipListenersToRef(ref);
+			}
+		});
+		return;
+	}
+	window.tooltipListenersAttached = true;
+
+	document.querySelectorAll(".bc-source-ref").forEach((ref) => {
+		attachTooltipListenersToRef(ref);
+	});
+}
+
+function attachTooltipListenersToRef(ref) {
+	// Mark this ref as having listeners attached
+	ref._tooltipListenersAttached = true;
+
+	let tooltipTimeout;
+	let isTooltipVisible = false;
+	let bridgeElement = null;
+	let currentTooltip = null;
+
+	// Add hover event listeners
+	ref.addEventListener("mouseenter", function (e) {
+		const tooltip = ref.querySelector(".bc-source-tooltip");
+		if (tooltip && !isTooltipVisible) {
+			if (tooltipTimeout) {
+				clearTimeout(tooltipTimeout);
+				tooltipTimeout = null;
+			}
+
+			// Set initial styles
+			tooltip.style.maxWidth = "350px";
+			tooltip.style.width = "auto";
+			tooltip.style.maxHeight = "none";
+			tooltip.style.overflowY = "visible";
+			tooltip.style.display = "block";
+			tooltip.style.opacity = "0";
+			tooltip.style.visibility = "hidden";
+			tooltip.style.position = "fixed";
+			tooltip.style.left = "-9999px";
+			tooltip.style.top = "-9999px";
+			tooltip.style.pointerEvents = "auto";
+			tooltip.style.zIndex = "9999";
+
+			setTimeout(() => {
+				const rect = ref.getBoundingClientRect();
+				const viewportWidth = window.innerWidth;
+				const viewportHeight = window.innerHeight;
+				const availableWidth = viewportWidth - 40;
+				const availableHeight = viewportHeight - 40;
+				const maxTooltipHeight = Math.min(400, availableHeight * 0.8);
+
+				tooltip.style.maxHeight = maxTooltipHeight + "px";
+				tooltip.style.display = "flex";
+				tooltip.style.flexDirection = "column";
+				tooltip.style.overflow = "hidden";
+
+				if (availableWidth < 350) {
+					tooltip.style.maxWidth = availableWidth + "px";
+					tooltip.style.width = availableWidth + "px";
+				}
+
+				const tooltipRect = tooltip.getBoundingClientRect();
+				const tooltipWidth = tooltipRect.width;
+				const tooltipHeight = Math.min(
+					tooltipRect.height,
+					maxTooltipHeight
+				);
+
+				// Calculate position
+				let left = rect.left;
+				let top = rect.bottom + 8;
+
+				// Ensure tooltip stays within viewport
+				if (left + tooltipWidth > viewportWidth - 20) {
+					left = viewportWidth - tooltipWidth - 20;
+				}
+				if (left < 20) {
+					left = 20;
+				}
+
+				// Position above if not enough space below
+				if (top + tooltipHeight > viewportHeight - 20) {
+					if (rect.top - tooltipHeight - 8 > 20) {
+						top = rect.top - tooltipHeight - 8;
+					} else {
+						top = 20;
+					}
+				}
+
+				// Final position validation
+				if (top < 20) top = 20;
+				if (top + tooltipHeight > viewportHeight - 20) {
+					top = viewportHeight - tooltipHeight - 20;
+				}
+
+				// Set final position
+				tooltip.style.left = left + "px";
+				tooltip.style.top = top + "px";
+				tooltip.style.opacity = "1";
+				tooltip.style.visibility = "visible";
+				tooltip.style.pointerEvents = "auto";
+				isTooltipVisible = true;
+				currentTooltip = tooltip;
+
+				// Create bridge element only if tooltip is positioned below the reference
+				if (top > rect.bottom) {
+					bridgeElement = document.createElement("div");
+					bridgeElement.style.cssText =
+						"position: fixed;" +
+						"left: " +
+						Math.min(left, rect.left) +
+						"px;" +
+						"top: " +
+						rect.bottom +
+						"px;" +
+						"width: " +
+						Math.max(tooltipWidth, rect.width) +
+						"px;" +
+						"height: " +
+						(top - rect.bottom) +
+						"px;" +
+						"pointer-events: auto;" +
+						"z-index: 9998;" +
+						"background: transparent;";
+					bridgeElement.className = "tooltip-bridge";
+
+					bridgeElement.addEventListener("mouseenter", function () {
+						if (tooltipTimeout) {
+							clearTimeout(tooltipTimeout);
+							tooltipTimeout = null;
+						}
+					});
+
+					bridgeElement.addEventListener("mouseleave", function () {
+						tooltipTimeout = setTimeout(() => {
+							hideTooltip(tooltip);
+						}, 100);
+					});
+
+					document.body.appendChild(bridgeElement);
+					tooltip._bridge = bridgeElement;
+				}
+
+				// Add tooltip listeners
+				tooltip.addEventListener("mouseenter", function () {
+					if (tooltipTimeout) {
+						clearTimeout(tooltipTimeout);
+						tooltipTimeout = null;
+					}
+				});
+
+				tooltip.addEventListener("mouseleave", function () {
+					tooltipTimeout = setTimeout(() => {
+						hideTooltip(tooltip);
+					}, 100);
+				});
+			}, 10);
+		}
+	});
+
+	ref.addEventListener("mouseleave", function (e) {
+		// Start timeout to hide tooltip when leaving reference
+		// This will be cleared if mouse enters bridge or tooltip
+		tooltipTimeout = setTimeout(() => {
+			hideTooltip(ref.querySelector(".bc-source-tooltip"));
+		}, 100);
+	});
+
+	// Add document-level mouse listener to catch when mouse leaves tooltip area
+	document.addEventListener("mousemove", function (e) {
+		if (currentTooltip && isTooltipVisible) {
+			const tooltipRect = currentTooltip.getBoundingClientRect();
+			const bridgeRect = bridgeElement
+				? bridgeElement.getBoundingClientRect()
+				: null;
+			const refRect = ref.getBoundingClientRect();
+
+			// Check if mouse is within any of the tooltip-related areas
+			const isInTooltip =
+				e.clientX >= tooltipRect.left &&
+				e.clientX <= tooltipRect.right &&
+				e.clientY >= tooltipRect.top &&
+				e.clientY <= tooltipRect.bottom;
+
+			const isInBridge = bridgeRect
+				? e.clientX >= bridgeRect.left &&
+					e.clientX <= bridgeRect.right &&
+					e.clientY >= bridgeRect.top &&
+					e.clientY <= bridgeRect.bottom
+				: false;
+
+			const isInRef =
+				e.clientX >= refRect.left &&
+				e.clientX <= refRect.right &&
+				e.clientY >= refRect.top &&
+				e.clientY <= refRect.bottom;
+
+			// If mouse is not in any tooltip-related area, hide the tooltip
+			if (!isInTooltip && !isInBridge && !isInRef) {
+				if (tooltipTimeout) {
+					clearTimeout(tooltipTimeout);
+				}
+				tooltipTimeout = setTimeout(() => {
+					hideTooltip(currentTooltip);
+				}, 50);
+			} else {
+				// Mouse is in tooltip area, clear any pending hide timeout
+				if (tooltipTimeout) {
+					clearTimeout(tooltipTimeout);
+					tooltipTimeout = null;
+				}
+			}
+		}
+	});
+
+	function hideTooltip(tooltip) {
+		if (!tooltip || !isTooltipVisible) return;
+
+		isTooltipVisible = false;
+		currentTooltip = null;
+
+		if (tooltip._bridge) {
+			document.body.removeChild(tooltip._bridge);
+			tooltip._bridge = null;
+			bridgeElement = null;
+		}
+
+		tooltip.style.opacity = "0";
+		tooltip.style.visibility = "hidden";
+		tooltip.style.pointerEvents = "none";
+
+		setTimeout(() => {
+			if (!isTooltipVisible) {
+				tooltip.style.display = "none";
+			}
+		}, 200);
+	}
+
+	ref.addEventListener("click", function (e) {
+		e.preventDefault();
+		e.stopPropagation();
+	});
+
+	ref.removeEventListener("click", ref._downloadHandler);
+	ref._downloadHandler = function (e) {
+		const downloadBtn = e.target.closest(".doc-download-btn");
+		if (downloadBtn) {
+			e.preventDefault();
+			e.stopPropagation();
+			if (downloadBtn.disabled) {
+				return;
+			}
+			const docId = downloadBtn.getAttribute("data-doc-id");
+			const docName = downloadBtn.getAttribute("data-doc-name");
+			const dealId = downloadBtn.getAttribute("data-deal-id");
+			const loader = downloadBtn.querySelector(".download-loader");
+			const docNameSpan = downloadBtn.querySelector(".doc-name");
+			if (loader && docNameSpan) {
+				loader.style.display = "inline-block";
+				docNameSpan.style.display = "none";
+			}
+			downloadBtn.disabled = true;
+			downloadDocument(docId, docName, dealId, downloadBtn);
+			return;
+		}
+	};
+	ref.addEventListener("click", ref._downloadHandler);
+}
+
+//Test function to verify functionality
+function testTooltipAndSourcesFunctionality() {
+	console.log("Testing tooltip and sources functionality...");
+
+	// Test tooltips
+	const tooltipRefs = document.querySelectorAll(".bc-source-ref");
+	console.log("Found " + tooltipRefs.length + " tooltip references");
+
+	// Check each reference for tooltip content
+	tooltipRefs.forEach((ref, index) => {
+		const tooltip = ref.querySelector(".bc-source-tooltip");
+		const hasListeners = ref._tooltipListenersAttached;
+		const sourceIdx = ref.getAttribute("data-source-idx");
+		console.log(
+			"Reference " +
+				(index + 1) +
+				": source-idx=" +
+				sourceIdx +
+				", has-tooltip=" +
+				!!tooltip +
+				", has-listeners=" +
+				hasListeners
+		);
+
+		if (index === 0 && !tooltip) {
+			console.warn("⚠️ First reference missing tooltip!");
+		}
+	});
+
+	// Test sources popup
+	const sourcesButtons = document.querySelectorAll(".sources-toggle-btn");
+	console.log("Found " + sourcesButtons.length + " sources toggle buttons");
+
+	// Test sources popup
+	const sourcesPopups = document.querySelectorAll(".sources-popup");
+	console.log("Found " + sourcesPopups.length + " sources popups");
+
+	if (tooltipRefs.length > 0) {
+		console.log("✅ Tooltip references found and ready for hover");
+	} else {
+		console.log("❌ No tooltip references found");
+	}
+
+	if (sourcesButtons.length > 0) {
+		console.log("✅ Sources toggle buttons found and ready for click");
+	} else {
+		console.log("❌ No sources toggle buttons found");
+	}
+
+	if (sourcesPopups.length > 0) {
+		console.log("✅ Sources popups found and ready");
+	} else {
+		console.log("❌ No sources popups found");
+	}
+}
+
 // Main function to be exported
 export function render(
 	props,
@@ -1074,8 +1714,12 @@ export function render(
 	userIconTemplate,
 	loadingText
 ) {
+	const state = store.getState().global;
 	// Reset sources open state on every render to ensure consistency
 	resetSourcesOpenState();
+
+	// Reset tooltip listeners flag to allow re-attachment
+	window.tooltipListenersAttached = false;
 
 	const html = renderBotConversation(
 		props,
@@ -1099,13 +1743,35 @@ export function render(
 		}
 	}
 
+	// Helper to ensure tooltip listeners are attached after DOM update
+	function ensureTooltipListenersAttached(attempt = 0) {
+		const tooltipRefs = document.querySelectorAll(".bc-source-ref");
+		if (tooltipRefs.length > 0) {
+			// Force setup even if already attached to ensure first reference gets processed
+			window.tooltipListenersAttached = false;
+			setupSourceTooltipListeners();
+		} else if (attempt < 10) {
+			requestAnimationFrame(() =>
+				ensureTooltipListenersAttached(attempt + 1)
+			);
+		}
+	}
+
 	// Setup a new timer (short delay)
 	window.accordionSetupTimer = setTimeout(() => {
 		setupEventListeners(props?.botConversation, props);
 		setupTemplates(props?.botConversation);
 		ensureSourcesListenersAttached();
-	}, 100); // Reduced timeout to 100ms for faster response
+		ensureTooltipListenersAttached();
+
+		if (state?.enableDebugging) {
+			setTimeout(() => {
+				testTooltipAndSourcesFunctionality();
+			}, 100);
+		}
+	}, 50);
 
 	return html;
 }
+
 export default { render, setupTemplates };
