@@ -1,19 +1,22 @@
-import { isEmpty } from "lodash";
+import { cloneDeep, isEmpty } from "lodash";
 import { getCurrentQuestion } from "../../utils/helpers";
 import UpdateGPTPromptValue from "../../chat/gptTemplate/updateGPTPromptValue";
 import Choices from "choices.js";
 import MultiResponse from "../../chat/gptTemplate/MultiResponse";
 import gptFormFunctionality from "../functionality/gpt-form-template";
+import store from "../../redux/store";
 
 export function render(item) {
 	// const { formData } = item;
 
-	const formData = MultiResponse().getInitialFormData(item);
+	const formData = item?.gpt_forms;
 	let contextField = null;
 	let fieldValues = [];
 	if (!isEmpty(formData?.contextFields)) {
 		contextField = formData?.contextFields?.[0];
 	}
+
+	let uploadedFileState = cloneDeep(store.getState().global.GptUploadedFiles);
 
 	if (!isEmpty(formData?.fieldValues)) {
 		fieldValues = formData?.fieldValues;
@@ -79,7 +82,34 @@ export function render(item) {
 		const grpInputDiv = document.createElement("div");
 		grpInputDiv.className = "grpInput";
 
-		if (
+		let contextFieldFileKey = `${contextField?.key}-${item?.messageId}`;
+		let fileDetails = uploadedFileState?.[contextFieldFileKey];
+
+		if(item?.loadingFiles?.includes(contextFieldFileKey)){
+			const loadingFileDiv = document.createElement("div");
+			loadingFileDiv.className = "loadingFileDetails";
+			loadingFileDiv.id = `loadingFile-${contextField?.key}-${item?.messageId}`;
+			loadingFileDiv.textContent = "Loading...";
+			grpInputDiv.appendChild(loadingFileDiv);
+		}
+
+		else if(fileDetails && fileDetails?.length > 0){
+			fileDetails?.forEach((file, index) => {
+				const uploadedFileDiv = document.createElement("div");
+				uploadedFileDiv.className = "uploadedFileDetails";
+				uploadedFileDiv.id = `uploadedFile-${contextField?.key}-${item?.messageId}-${index}`;
+				uploadedFileDiv.textContent = file?.title;
+
+				const removeButton = document.createElement("button");
+				removeButton.textContent = "Remove";
+				removeButton.id = `removeButton-${contextField?.key}-${item?.messageId}-${index}`;
+				uploadedFileDiv.appendChild(removeButton);
+
+				grpInputDiv.appendChild(uploadedFileDiv);
+			});
+		}
+
+		else if (
 			contextField?.value?.type === "longText" ||
 			contextField?.value?.type === "simpleText" ||
 			contextField?.value?.type === "richText"
@@ -106,18 +136,19 @@ export function render(item) {
 				formFieldLongTextElement.className = "formField LongText";
 				const fileUploadLabel = document.createElement("label");
 				fileUploadLabel.textContent = "Upload";
+				fileUploadLabel.className = "fileUploadLabel";
 				formFieldLongTextElement.appendChild(fileUploadLabel);
 
 				const inputField = document.createElement("input");
 				inputField.type = "file";
 				inputField.id = `fileUpload-${contextField?.key}-${item?.messageId}`;
-				formFieldLongTextElement.appendChild(inputField);
+				fileUploadLabel.appendChild(inputField);
 
-				const removeButton = document.createElement("button");
-				removeButton.textContent = "Remove";
-				removeButton.id = `removeButton-${contextField?.key}-${item?.messageId}`;
-				removeButton.style.display = "none";
-				formFieldLongTextElement.appendChild(removeButton);
+				// const removeButton = document.createElement("button");
+				// removeButton.textContent = "Remove";
+				// removeButton.id = `removeButton-${contextField?.key}-${item?.messageId}`;
+				// removeButton.style.display = "none";
+				// formFieldLongTextElement.appendChild(removeButton);
 
 				grpInputDiv.appendChild(formFieldLongTextElement);
 			}
@@ -130,7 +161,7 @@ export function render(item) {
 			grpInputDiv.appendChild(textareaElement);
 		}
 
-		if (contextField?.value?.type === "file") {
+		else if (contextField?.value?.type === "file") {
 			const inputField = document.createElement("input");
 			inputField.type = "file";
 			inputField.id = `fileUpload-${contextField?.key}-${item?.messageId}`;
@@ -169,15 +200,62 @@ export function render(item) {
 			deleteResponse.id = `deleteResponse-${item?.messageId}-${index}`;
 			singleResponseWrapper.appendChild(deleteResponse);
 		}
-
 		parameters?.forEach((field, i) => {
+
+			let parameterFileKey = `${field?.key}-${item?.messageId}-${index}`;
+			let fileDetails = uploadedFileState?.[parameterFileKey];
+			let hasUploadedFiles = fileDetails && fileDetails?.length > 0;
+			let isLoading = item?.loadingFiles?.includes(parameterFileKey);
+		
 			const tvInputGroupDiv = document.createElement("div");
 			tvInputGroupDiv.className = `tvInputGroup ${field?.value?.type} ${
 				field?.value?.canUploadFile ? "uploadGrp" : ""
 			}`;
-
+		
 			const grpInputDiv = document.createElement("div");
 			grpInputDiv.className = "grpInput";
+		
+			if (hasUploadedFiles || isLoading) {
+				const grpWrapDiv = document.createElement("div");
+				grpWrapDiv.className = "grpwrap";
+
+				const grpNameDiv = document.createElement("div");
+				grpNameDiv.className = "grpName";
+
+				const nameTitleDiv = document.createElement("div");
+				nameTitleDiv.className = "nameTitle";
+				nameTitleDiv.textContent = `${field?.label} ${field?.required || field?.value?.required ? "*" : ""
+					}`;
+				grpNameDiv.appendChild(nameTitleDiv);
+				grpWrapDiv.appendChild(grpNameDiv);
+				grpInputDiv.appendChild(grpWrapDiv);
+
+				if (isLoading) {
+					const loadingFileDiv = document.createElement("div");
+					loadingFileDiv.className = "loadingFileDetails";
+					loadingFileDiv.id = `loadingFile-${field?.key}-${item?.messageId}-${index}`;
+					loadingFileDiv.textContent = "Loading...";
+					grpInputDiv.appendChild(loadingFileDiv);
+				} else {
+					fileDetails?.forEach((file, fileIndex) => {
+						const uploadedFileDiv = document.createElement("div");
+						uploadedFileDiv.className = "uploadedFileDetails";
+						uploadedFileDiv.id = `uploadedFile-${field?.key}-${item?.messageId}-${index}`;
+						uploadedFileDiv.textContent = file?.title;
+
+						const removeButton = document.createElement("button");
+						removeButton.textContent = "Remove";
+						removeButton.id = `removeButton-${field?.key}-${item?.messageId}-${index}`;
+						uploadedFileDiv.appendChild(removeButton);
+
+						grpInputDiv.appendChild(uploadedFileDiv);
+					});
+				}
+				
+				tvInputGroupDiv.appendChild(grpInputDiv);
+				singleResponseWrapper.appendChild(tvInputGroupDiv);
+				return; // prevent further input rendering
+			}			
 
 			if (field?.value?.type === "richText" && field?.key === "content") {
 				const grpWrapDiv = document.createElement("div");
@@ -197,16 +275,17 @@ export function render(item) {
 
 				if (field?.value?.canUploadFile) {
 					const formFieldLongTextElement =
-						document.createElement("div");
+					document.createElement("div");
 					formFieldLongTextElement.className = "formField LongText";
 					const fileUploadLabel = document.createElement("label");
 					fileUploadLabel.textContent = "Upload";
+					fileUploadLabel.className = "fileUploadLabel";
 					formFieldLongTextElement.appendChild(fileUploadLabel);
 
 					const inputField = document.createElement("input");
 					inputField.type = "file";
 					inputField.id = `fileUpload-${field?.key}-${item?.messageId}-${index}`;
-					formFieldLongTextElement.appendChild(inputField);
+					fileUploadLabel.appendChild(inputField);
 
 					const removeButton = document.createElement("button");
 					removeButton.textContent = "Remove";
@@ -439,12 +518,13 @@ export function render(item) {
 				formFieldLongTextElement.className = "formField LongText";
 				const fileUploadLabel = document.createElement("label");
 				fileUploadLabel.textContent = "Upload";
+				fileUploadLabel.className = "fileUploadLabel";
 				formFieldLongTextElement.appendChild(fileUploadLabel);
 
 				const inputField = document.createElement("input");
 				inputField.type = "file";
 				inputField.id = `fileUpload-${field?.key}-${item?.messageId}-${index}`;
-				formFieldLongTextElement.appendChild(inputField);
+				fileUploadLabel.appendChild(inputField);
 
 				const removeButton = document.createElement("button");
 				removeButton.textContent = "Remove";

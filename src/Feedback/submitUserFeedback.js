@@ -1,7 +1,7 @@
 import { submitFeedback } from "../redux/actions/global.action"
 import store from "../redux/store"
 
-const submitUserFeedback = async ({ type, cId, payload }) => {
+const submitUserFeedback = async ({ type, cId, messageId = null, payload }) => {
     // console.log("inside submitFeedback: ", question, payload)
     const state = store.getState().global
     if(state?.enableDebugging){
@@ -47,8 +47,11 @@ const submitUserFeedback = async ({ type, cId, payload }) => {
             cId: ${cId}
             Payload: ${feedBackPayload}
         `);
+    }    
+    if(!messageId){
+        messageId = currentQuestion?.messageId
     }
-    const response = await store.dispatch(submitFeedback({ boardId: state.activeBoardId, messageId: currentQuestion?.messageId, cId: cId, payload: feedBackPayload }));
+    const response = await store.dispatch(submitFeedback({ boardId: state.activeBoardId, messageId: messageId, cId: cId, payload: feedBackPayload }));
     return response;
 }
 

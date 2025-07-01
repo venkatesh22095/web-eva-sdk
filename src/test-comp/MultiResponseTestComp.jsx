@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { GptFileUpload } from "../chat";
 import DeleteGPTResponse from "../chat/gptTemplate/deleteGPTResponse";
 import UpdateGPTPromptValue from "../chat/gptTemplate/updateGPTPromptValue";
@@ -9,8 +9,9 @@ import store from "../redux/store";
 import { use } from "marked";
 import { set } from "lodash";
 
-const MultiResponseTestComp = ({ item, files }) => {        
+const MultiResponseTestComp = ({ item }) => {        
     let forms = item?.gpt_forms;
+    const [files, setFiles] = useState({})
     return (
         <>
             <div>
@@ -29,10 +30,11 @@ const MultiResponseTestComp = ({ item, files }) => {
 
                             {(contextField?.value?.type === "file" || contextField?.value?.canUploadFile) && (
                                 <>
-                                    <input type="file" id={`fileUpload-${contextField?.key}-${item?.messageId}`} onChange={
-                                        async (e) => {   
-                                            try{
-                                                await GptFileUpload(e, `${contextField?.key}-${item?.messageId}`)
+                                    <input type="file" id={`fileUpload-${contextField?.key}-${item?.messageId}`} multiple onChange={
+                                        async (e) => {
+                                            try {
+                                                const res = await GptFileUpload(e, `${contextField?.key}-${item?.messageId}`)
+                                                setFiles(res)
                                             }    catch(err){
                                                 console.log("error", err)
                                             }                                 
@@ -106,10 +108,11 @@ const MultiResponseTestComp = ({ item, files }) => {
                                         )}
                                         {(subItem?.value?.canUploadFile || subItem?.value?.type === 'file') && (
                                             <>  
-                                                <input type="file" id={`fileUpload-${subItem?.key}-${item?.messageId}-${subIndex}`} onChange={
+                                                <input type="file" id={`fileUpload-${subItem?.key}-${item?.messageId}-${subIndex}`} multiple onChange={
                                                     async(e) => {
                                                         try{
-                                                            await GptFileUpload(e, `${subItem?.key}-${item?.messageId}-${subIndex}`)
+                                                          const res =  await GptFileUpload(e, `${subItem?.key}-${item?.messageId}-${subIndex}`)
+                                                          setFiles(res)
                                                         }catch(err){
                                                             console.log("error", err)
                                                         }

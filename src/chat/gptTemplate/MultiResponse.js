@@ -33,7 +33,9 @@ const MultiResponse = () => {
         }
 
         // The context Data is saved in the ContextFields and rest of the data is saved in the fieldValues
-        fieldValues.push(parameterFields)
+        if(parameterFields?.length !== 0) {
+            fieldValues.push(parameterFields)
+        }        
         forms.fieldValues = fieldValues
         return forms
     }
@@ -60,9 +62,12 @@ const MultiResponse = () => {
 
     const addAdditionalResponse = (item, defaultTemplate = false) => {
         // The Additional responses will be added here
-        let currentQuestion = cloneDeep(_questions[item?.cId]);
+
+        let reqId = item?.id ? item?.id : item?.cId;
+        let currentQuestion = cloneDeep(_questions[reqId]);
         let _formData = cloneDeep(currentQuestion?.gpt_forms);
-        let cloneParamFields = cloneDeep(_formData.fieldValues[0]);
+        let newResponseFormFields = getInitialFormData(item);
+        let cloneParamFields = cloneDeep(newResponseFormFields?.fieldValues[0]);
 
         // The choices dropdown will be added here
         let choicesDropdown;
@@ -74,21 +79,38 @@ const MultiResponse = () => {
         _formData.fieldValues.push(cloneParamFields);
 
         // The updated gpt_forms data will be saved here
-        if(defaultTemplate){
-            handleDefaultTemplateChanges(_formData, currentQuestion)
-        } else {
+        // if(defaultTemplate){
+        //     handleDefaultTemplateChanges(_formData, currentQuestion)
+        // } 
+        // else {
             currentQuestion.gpt_forms = _formData;
-            _questions[item?.cId] = currentQuestion;
+            _questions[reqId] = currentQuestion;
             store.dispatch(updateChatData(_questions));
-        }
+        // }
     }
 
     const deleteAdditionalResponse = (item, subIndex, defaultTemplate = false) => {
         // The Additional responses will be deleted here
-        let currentQuestion = cloneDeep(_questions[item?.cId]);
+        let reqId = item?.id ? item?.id : item?.cId;
+        let currentQuestion = cloneDeep(_questions[reqId]);
         let newFieldValues = cloneDeep(currentQuestion?.gpt_forms?.fieldValues);
         let contextField = currentQuestion?.gpt_forms?.contextFields?.[0]
         newFieldValues?.splice(subIndex, 1);
+
+        // currentQuestion.filesUploaded = currentQuestion?.filesUploaded - 1 || 0;
+
+        let _uploadedFiles = cloneDeep(state.GptUploadedFiles);
+        newFieldValues?.forEach((fieldValues) => {
+            fieldValues?.forEach((field) => {
+                let parameterFileKey = `${field?.key}-${item?.messageId}-${subIndex}`;
+                if (_uploadedFiles?.[parameterFileKey]) {
+                    delete _uploadedFiles[parameterFileKey];
+                    currentQuestion.filesUploaded = currentQuestion?.filesUploaded - 1 || 0;
+                }
+            });
+        });
+
+        store.dispatch(setGptUploadedFiles(_uploadedFiles));
 
         // As a response is deleted, the choices dropdown needs to be updated with new choices and it is done here
         newFieldValues.forEach((fieldValues, index) => {
@@ -102,12 +124,12 @@ const MultiResponse = () => {
 
         // The updated gpt_forms data will be saved here
 
-        if(defaultTemplate){
-            handleDefaultTemplateChanges(currentQuestion.gpt_forms, currentQuestion)
-        }else{
-            _questions[item?.cId] = currentQuestion;
+        // if(defaultTemplate){
+            // handleDefaultTemplateChanges(currentQuestion.gpt_forms, currentQuestion)
+        // }else{
+            _questions[reqId] = currentQuestion;
             store.dispatch(updateChatData(_questions));
-        }
+        // }
     }
 
 
@@ -244,7 +266,15 @@ const MultiResponse = () => {
                         reqdValue = reqdValues; 
                     } else {
                         reqdValue = reqdInputElement?.value || reqdInputElement?.textContent || ""; 
-                        reqdValue = /^Output\s\d+$/.test(reqdValue) ? reqdValue?.split(" ")?.[1] : reqdValue //this check is for multi output, where we need to pass the id of the output for the context
+                        //this check is for multi output, where we need to pass the id of the output for the context
+                         reqdValue = /^Output\s\d+$/.test(reqdValue)
+                                                    ? reqdValue.split(" ")[1]
+                                                    : reqdValue?.includes("Original Content")
+                                                    ? "0"
+                                                    : reqdValue || "";
+
+
+                        
                     }
 
                     //for the filed 'prompts' sdk should pass the id of the selected option
@@ -316,6 +346,20 @@ const MultiResponse = () => {
             return { "fields" : totalMockParameters };
         })
     
+        if(allResponseFields?.length === 0) {
+            // If there are no response fields, then we need to send the contextFields as the requestParams
+            requestParams = [{
+                "fields": {
+                    [contextFields?.key]: {
+                        type: "dropdown",
+                        value: "0",
+                        required: false,
+                        id: contextFields?.id,
+                        label: contextFields?.label
+                    }
+                }
+            }]
+        }
         
         payload.formData.requestParams = requestParams
 
@@ -373,46 +417,41 @@ const MultiResponse = () => {
             promptField.value.nested.id = requiredPrompt.id
         }
 
-        let currentQuestion = cloneDeep(_questions[item?.cId]);
+        let reqId = item?.id ? item?.id : item?.cId;
+        let currentQuestion = cloneDeep(_questions[reqId]);
         // Updating the GPT Forms Data
-        if(defaultTemplate){
-            handleDefaultTemplateChanges(_forms, currentQuestion)
-        }else{
+        // if(defaultTemplate){
+            // handleDefaultTemplateChanges(_forms, currentQuestion)
+        // }else{
             currentQuestion.gpt_forms = _forms;
-            _questions[item?.cId] = currentQuestion;
+            _questions[reqId] = currentQuestion;
             store.dispatch(updateChatData(_questions));
-        }
+        // }
     }
 
-    const removeFile = (e, index, mediaName=null) => {
+    const removeFile = (e, index, mediaName=null, questionId, ind) => {
         let uploadedFiles = cloneDeep(state.GptUploadedFiles);
         // Deleting that Particular File from the Uploaded Files
         //New Update:- As we are supporting multiple files, do updating the uploadedFiles object
-        if(mediaName){
+        if (mediaName) {
             uploadedFiles[index] = uploadedFiles[index]?.filter(file => file.mediaName !== mediaName);
-        }else{
+        } else {
             delete uploadedFiles[index];
         }
+
+        let currentQuestion = cloneDeep(_questions[questionId]);
+        currentQuestion.filesUploaded = currentQuestion?.filesUploaded - 1 || 0;
+        _questions[questionId] = currentQuestion;
+        store.dispatch(updateChatData(_questions));
         store.dispatch(setGptUploadedFiles(uploadedFiles));
-
-        // Showing the Text Area and Button for the File Upload
-        const reqdTextArea = document.getElementById(`inputValue-${index}`)
-        if(reqdTextArea) {
-            reqdTextArea.style.display = 'block';
-        }
-
-        // Hiding the Button for the File Upload
-        const reqdButton = document.getElementById(`removeButton-${index}`)
-        if(reqdButton) {
-            reqdButton.style.display = 'none'
-        }
     }
 
     const handleDefaultTemplateChanges = (formData, question, promptId = null, updatedRespIndex = null) => {
         const gptFormConstructedData = constructGptForm(formData, question, promptId, updatedRespIndex)
         question.template_html = gptFormConstructedData.outerHTML
         question.gpt_forms = formData;
-        _questions[question?.cId] = question;
+        let reqId = question?.id ? question?.id : question?.cId;
+        _questions[reqId] = question;
         store.dispatch(updateChatData(_questions));
         setTimeout(() => {
             gptFormFunctionality(formData, question);

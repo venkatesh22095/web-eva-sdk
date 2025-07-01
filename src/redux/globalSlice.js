@@ -13,7 +13,7 @@ import {
   getNotification
 } from './actions/global.action';
 import { handleAsyncActions } from '../utils/handleAsyncActions';
-import { cloneDeep, concat, orderBy, uniqBy } from 'lodash';
+import { cloneDeep, concat, isEmpty, orderBy, uniqBy } from 'lodash';
 
 const initialState = { 
   profile: {},
@@ -209,7 +209,14 @@ const globalSlice = createSlice({
       handleAsyncActions(builder, submitFeedback, 'submitFeedback', (state, action)=> {
         // feedback logic to update questions
         let questions = cloneDeep(state.questions)
-        questions[[action.meta.arg.cId]] = { ...questions[[action.meta.arg.cId]] , ...action.payload.data}
+        //As we started to support feedback for the individual volley of a threaded conversation, we need to update the botConversation with the feedback
+        const isThreadedQuestion = Object.values(questions)?.find(q => q.messageId === action.payload?.data?.pId) || {}
+        if(!isEmpty(isThreadedQuestion?.botConversation)){
+          questions[[action.meta.arg.cId]].botConversation[action.payload?.data?.messageId] = action.payload?.data
+        }else{
+          questions[[action.meta.arg.cId]] = { ...questions[[action.meta.arg.cId]], ...action.payload.data }
+        }
+                  
         state.questions = questions
       });
       handleAsyncActions(builder, presenceStart, 'presenceStart');
