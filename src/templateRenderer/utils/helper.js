@@ -13,11 +13,11 @@ function validateInput(templateType, data) {
 export const encodeHtml = (str) => {
 	if (!str) return "";
 	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
+		?.replace(/&/g, "&amp;")
+		?.replace(/</g, "&lt;")
+		?.replace(/>/g, "&gt;")
+		?.replace(/"/g, "&quot;")
+		?.replace(/'/g, "&#039;");
 };
 
 export const getTimeline = (time, type) => {
@@ -367,10 +367,10 @@ function getTime(time) {
 		mMinutes +
 		" " +
 		ampm;
-	return strTime.replace(/^0+/, "");
+	return strTime?.replace(/^0+/, "");
 }
 export const highlightQuotedText = (input) => {
-	return input.replace(/"([^"]+)"/g, (match, p1) => {
+	return input?.replace(/"([^"]+)"/g, (match, p1) => {
 		return `"​<span class="highlightedText">${p1}</span>"`;
 	});
 };

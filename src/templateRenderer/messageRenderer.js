@@ -46,12 +46,12 @@ export function render(
 		} 
 
 		// Handle error state
-		if (data.error) {
+		if (data?.error) {
 			return TemplateComponents.wrapTemplate(
 				errorMessage.render(data, assistantIconTemplate),
 				{
 					type: "error",
-					id: data.id,
+					id: data?.id,
 				}
 			);
 		}
@@ -60,8 +60,8 @@ export function render(
 
 		// Add question bubble if needed
 		if (
-			data.question &&
-			shouldShowQuestion(data.templateType, data.botConversation)
+			data?.question &&
+			shouldShowQuestion(data?.templateType, data?.botConversation)
 		) {
 			content += TemplateComponents.renderQuestionBubble(
 				data,
@@ -70,7 +70,7 @@ export function render(
 		}
 
 		// Render template content based on type
-		if (data.botConversation || data.viewType === "threadView") {
+		if (data?.botConversation || data?.viewType === "threadView") {
 			content += DOMPurify.sanitize(
 				renderTemplateContent(
 					data,
@@ -93,10 +93,10 @@ export function render(
 			let chip = AnsFromChip({ item: data });
 			content += chip;
 		}
-		let ele = TemplateComponents.wrapTemplate(content, {
-			type: data.templateType,
-			id: data.id,
-			className: data.className,
+		let ele = TemplateComponents?.wrapTemplate(content, {
+			type: data?.templateType,
+			id: data?.id,
+			className: data?.className,
 		});
 		return ele;
 	} catch (error) {
