@@ -51,7 +51,7 @@ function renderFeedbackSection(conversation, sources, props) {
   
     let feedbackLabel = "What did you like about this response? (optional)";
     if (existingFeedback === "dislike") {
-      feedbackLabel = "What didn’t you like about this response? (optional)";
+      feedbackLabel = "What didn't you like about this response? (optional)";
     }
   
     return `
@@ -148,7 +148,6 @@ function setupFeedbackEventListeners() {
       e.preventDefault();
       const isLike = !!likeBtn;
       const isDislike = !!dislikeBtn;
-
       // If feedback already exists, just show the modal (do not reset fields)
       const feedbackModal = feedbackSection.querySelector('.feedback-modal');
       if (feedbackSection && (feedbackSection.dataset.feedbackSubmitted === 'true' || feedbackSection.querySelector('.feedback-icon-btn.selected'))) {
@@ -182,6 +181,14 @@ function setupFeedbackEventListeners() {
       // Show modal
       const modal = feedbackSection.querySelector(".feedback-modal");
       modal.style.display = "block";
+
+      // Set feedback label dynamically
+      const label = modal.querySelector('.feedback-label');
+      if (label) {
+        label.textContent = isLike
+          ? "What did you like about this response? (optional)"
+          : "What didn't you like about this response? (optional)";
+      }
 
       // Reset modal state
       modal.querySelector(".feedback-textarea").value = "";
