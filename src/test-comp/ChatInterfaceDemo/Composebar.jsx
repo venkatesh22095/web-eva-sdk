@@ -20,19 +20,19 @@ const Composebar = ({quickActions, chatInterface, input, setInput, messages}) =>
     <div className="composebar-parent">
       <div className="composebar-area">
         <div className="guick-reply-container">
-            {quickActions?.map((item) => {
-          return (
-            <div
-            className="quick-reply-chip"
-              key={item?.id}
-              onClick={() => {
-                chatInterface.current.askQuickActions(item);
-              }}
-            >
-              {item?.label}
-            </div>
-          );
-        })}
+          {quickActions?.map((item) => {
+            return (
+              <div
+                className="quick-reply-chip"
+                key={item?.id}
+                onClick={() => {
+                  chatInterface.current.askQuickActions(item);
+                }}
+              >
+                {item?.label}
+              </div>
+            );
+          })}
         </div>
         <textarea
           id="composeBar"
@@ -42,18 +42,19 @@ const Composebar = ({quickActions, chatInterface, input, setInput, messages}) =>
           placeholder="Ask question..."
         />
       </div>
+
       <div className="composebar-buttons">
-            <button
-            onClick={() =>
-            chatInterface.current.sendMessage(input, messages?.[messages?.length - 1])
-            }
-        >
-            Send
-        </button>
-        <button onClick={() => NewChat()}>+New</button>
-        <button onClick={() => chatInterface.current.cancelMessageReqAction()}>
-            Stop
-        </button>
+        <sl-button onClick={() =>
+            chatInterface.current.sendMessage(
+              input,
+              messages?.[messages?.length - 1]
+            )
+          }>Send</sl-button>
+        <sl-button onClick={() => NewChat()}>
+           <sl-icon slot="prefix" name="plus"></sl-icon>
+          New
+        </sl-button>
+        <sl-button onClick={() => chatInterface.current.cancelMessageReqAction()}>Stop</sl-button>
       </div>
     </div>
   );
