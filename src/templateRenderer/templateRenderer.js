@@ -2,6 +2,19 @@ import { convertTemplateToHtml } from "../utils/helpers.js";
 import MessageRenderer from "./messageRenderer.js";
 import * as TemplateComponents from "./templates";
 
+export function upgradeCustomElements(container) {
+  if (!window.customElements || !container) return;
+
+  const allEls = container.querySelectorAll('*');
+
+  allEls.forEach(el => {
+    const tagName = el.tagName.toLowerCase();
+    if (tagName.startsWith('sl-') && customElements.get(tagName)) {
+      customElements.upgrade(el);
+    }
+  });
+}
+
 /**
  * Generate DOM for message
  * @param {Object} data Message data
@@ -24,6 +37,8 @@ export function generateHTMLTemplate(
 			userIconTemplate,
 			loadingText,
 		});
+
+		
 
 		// Create temporary container
 		const container = document.createElement("div");
@@ -173,6 +188,7 @@ const TemplateRenderer = {
 	handleFeedback,
 	attachAmbiguityListeners,
 	attachExecutionListeners,
+	upgradeCustomElements
 };
 
 export default TemplateRenderer;

@@ -8,6 +8,25 @@ import History from "../history";
 import Agents from "../agents";
 import Notifications from "../Notifications";
 
+// function ShoelaceWrapper({ html }) {
+//   const ref = useRef(null);
+
+//   useEffect(() => {
+//     if (!ref.current || !html) return;
+
+//     ref.current.innerHTML = '';
+
+//     const fragment = html instanceof Node ? html : document.createRange().createContextualFragment(html);
+//     ref.current.appendChild(fragment);
+
+//     // Ensure Shoelace components are defined before any upgrade
+//     TemplateRenderer.upgradeCustomElements(ref.current);
+
+//   }, [html]);
+
+//   return <div ref={ref} />;
+// }
+
 const ChatInterfaceDemo = () => {
   const [messages, setMessages] = useState(null);
   const [quickActions, setQuickActions] = useState(null);
@@ -33,14 +52,7 @@ const ChatInterfaceDemo = () => {
     const unsubscribe = chatInterface.current.subscribe(
       (question, searchResponse, moreAvailable, errorStates, quickActions) => {
         // Handle the API response data
-        console.log(
-          "Received data from chat API:",
-          question,
-          searchResponse,
-          moreAvailable,
-          errorStates,
-          quickActions
-        );
+       
         setMessages(question);
         setQuickActions(quickActions);
       }
@@ -61,7 +73,7 @@ const ChatInterfaceDemo = () => {
       <div className="chatInterfaceSec">
         <div className="chatSec">
           {messages &&
-            Object.values(messages).map((item) => {
+            Object.values(messages).map((item, index) => {
               if (item?.isTask) return;
               const assistantIconTemplate = () => {
                 return <div className="logo-icon"><img src="/public/eva-black-svg.svg" alt="AiForWork" /></div>;
@@ -75,6 +87,7 @@ const ChatInterfaceDemo = () => {
 
               return (
                 <div
+                  key={index}
                   dangerouslySetInnerHTML={{
                     __html: html.innerHTML,
                   }}

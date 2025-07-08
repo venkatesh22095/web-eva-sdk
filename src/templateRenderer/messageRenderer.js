@@ -13,7 +13,7 @@ import * as holdConversation from "./templates/hold-conversation-template";
 import * as errorMessage from "./templates/error-message-template";
 import * as genericErrorTemplate from "./templates/generic-error-template";
 import * as feedbackTemplate from "./templates/feedback-template";
-import { encodeHtml } from "./utils/helper";
+import { encodeHtml, SHOELACE_ATTRS, SHOELACE_TAGS } from "./utils/helper";
 import { convertTemplateToHtml } from "../utils/helpers";
 import botConversation from "./templates/bot-conversation";
 import customMarkdownRenderer from "./utils/customMarkdownRenderer";
@@ -70,15 +70,17 @@ export function render(
 		}
 
 		// Render template content based on type
-		if (data?.botConversation || data?.viewType === "threadView") {
-			content += DOMPurify.sanitize(
-				renderTemplateContent(
+		if (data.botConversation || data.viewType === "threadView") {
+			let html = renderTemplateContent(
 					data,
 					assistantIconTemplate,
 					userIconTemplate,
 					loadingText
 				)
-			);
+			content += DOMPurify.sanitize(html, {
+					ADD_TAGS: SHOELACE_TAGS,
+					ADD_ATTR: SHOELACE_ATTRS,
+				});
 		} else {
 			content += customMarkdownRenderer(
 				renderTemplateContent(

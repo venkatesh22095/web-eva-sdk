@@ -11,70 +11,173 @@ export function render(data) {
     let emailList = data?.templateInfo?.connections;
     let defaultConnectionId = data?.templateInfo?.defaultConnections;
 
+    // let html = `
+    //     <div class="email-template">
+    //     <div class='email-selection-field'>
+    //         <div class="email-field">
+    //             <select id = ${`email-connection-${data?.reqId}`}>
+    //                 ${emailList?.map((email, index) =>
+    //                     `<option id = email-connection-${index} value="${email?.id}" ${email?.id === defaultConnectionId ? 'selected' : ''}>${email?.emailId}</option>`
+    //                 ).join('')}
+    //             </select>
+    //         </div>
+    //         <div class="email-header">
+    //             <div class="email-field">
+    //                 <label>To:</label>
+    //                 ${getEmailValue(data, 'to')}
+    //                 <input type="text" placeholder="Enter email address" id = ${`email-to-${data?.reqId}`} value = "${data?.toChoices ? data?.toChoices?.input : ''}"/>
+    //                 <div class="email-suggestions-dropdown">
+    //                     ${data?.toChoices ? data?.toChoices?.res?.map((email, index) =>
+    //                         `<option id = email-to-${data?.reqId}-${index} value="${email?.id}">${email?.id}</option>`
+    //                     ).join('') : ''}
+    //                 </div>
+    //             </div>
+    //             <div class="email-field">
+    //                 <label>CC:</label>
+    //                 ${getEmailValue(data, 'cc')}
+    //                 <input type="text" placeholder="Enter email address" id = ${`email-cc-${data?.reqId}`} value = "${data?.ccChoices ? data?.ccChoices?.input : ''}" />
+    //                 <div class="email-suggestions-dropdown">
+    //                     ${data?.ccChoices ? data?.ccChoices?.res?.map((email, index) =>
+    //                         `<option id = email-cc-${data?.reqId}-${index} value="${email?.id}">${email?.id}</option>`
+    //                     ).join('') : ''}
+    //                 </div>
+    //             </div>
+    //             <div class="email-field">
+    //                 <label>BCC:</label>
+    //                 ${getEmailValue(data, 'bcc')}
+    //                 <input type="text" placeholder="Enter email address" id = ${`email-bcc-${data?.reqId}`} value = "${data?.bccChoices ? data?.bccChoices?.input : ''}" />
+    //                 <div class="email-suggestions-dropdown">
+    //                     ${data?.bccChoices ? data?.bccChoices?.res?.map((email, index) =>
+    //                         `<option id = email-bcc-${data?.reqId}-${index} value="${email?.id}">${email?.id}</option>`
+    //                     ).join('') : ''}
+    //                 </div>
+    //             </div>
+    //             <div class="email-field">
+    //                 <sl-input label="Subject" placeholder="Enter subject" 
+    //                     id="email-subject-${data?.reqId}" 
+    //                     value="${data?.content?.subject || ''}">
+    //                 </sl-input>
+    //             </div>
+    //         </div>
+    //         <div class="email-body">
+    //             <div
+    //                 class="email-body-container"
+    //                 id="${`email-body-${data?.reqId}`}"
+    //                 contenteditable="true"
+    //             >
+    //                 ${data?.content?.body ? data?.content?.body : ''}
+    //             </div>
+    //         </div>
+    //         <div class="email-footer">
+    //             <div class="email-field">
+    //                 <input type="file" id = ${`email-attachments-${data?.reqId}`} multiple></input>
+    //             </div>
+    //             <div class="email-field">
+    //                 ${getSmartComposeData(data)}
+    //             </div>
+    //             <div class="email-field">
+    //                 <sl-button id = ${`email-send-${data?.reqId}`}>Send</sl-button>
+    //             </div>
+    //         </div>
+    //     </div>
+    // `;
+
     let html = `
         <div class="email-template">
-        <div class='email-selection-field'>
-            <div class="email-field">
-                <select id = ${`email-connection-${data?.reqId}`}>
-                    ${emailList?.map((email, index) =>
-                        `<option id = email-connection-${index} value="${email?.id}" ${email?.id === defaultConnectionId ? 'selected' : ''}>${email?.emailId}</option>`
-                    ).join('')}
-                </select>
-            </div>
-            <div class="email-header">
+            <div class='email-selection-field'>
                 <div class="email-field">
-                    <label>To:</label>
-                    ${getEmailValue(data, 'to')}
-                    <input type="text" placeholder="Enter email address" id = ${`email-to-${data?.reqId}`} value = "${data?.toChoices ? data?.toChoices?.input : ''}"/>
-                    <div class="email-suggestions-dropdown">
-                        ${data?.toChoices ? data?.toChoices?.res?.map((email, index) =>
-                            `<option id = email-to-${data?.reqId}-${index} value="${email?.id}">${email?.id}</option>`
-                        ).join('') : ''}
+                    <sl-select id="email-connection-${data?.reqId}" value="${defaultConnectionId || ''}">
+                        ${emailList?.map((email, index) =>
+                        `
+                        <sl-option value="${email?.id}" id="email-connection-${index}">${email?.emailId}</sl-option>
+                        `
+                        ).join('')}
+                    </sl-select>
+                </div>
+                <div class="email-header">
+                    <div class="email-field">
+                        ${getEmailValue(data, 'to')}
+                        <sl-input
+                        label="To:"
+                        type="text"
+                        placeholder="Enter email address"
+                        id="email-to-${data?.reqId}"
+                        value="${data?.toChoices?.input || ''}"
+                        ></sl-input>
+                        <div class="email-suggestions-dropdown">
+                        ${data?.toChoices?.res?.map((email, index) =>
+                        `
+                        <sl-option id="email-to-${data?.reqId}-${index}" value="${email?.id}">${email?.id}</sl-option>
+                        `
+                        ).join('') || ''}
+                        </div>
+                    </div>
+                    <div class="email-field">
+                        ${getEmailValue(data, 'cc')}
+                        <sl-input
+                        label="CC:"
+                        type="text"
+                        placeholder="Enter email address"
+                        id="email-cc-${data?.reqId}"
+                        value="${data?.ccChoices?.input || ''}"
+                        ></sl-input>
+                        <div class="email-suggestions-dropdown">
+                        ${data?.ccChoices?.res?.map((email, index) =>
+                        `
+                        <sl-option id="email-cc-${data?.reqId}-${index}" value="${email?.id}">${email?.id}</sl-option>
+                        `
+                        ).join('') || ''}
+                        </div>
+                    </div>
+                    <div class="email-field">
+                        ${getEmailValue(data, 'bcc')}
+                        <sl-input
+                        label="BCC:"
+                        type="text"
+                        placeholder="Enter email address"
+                        id="email-bcc-${data?.reqId}"
+                        value="${data?.bccChoices?.input || ''}"
+                        ></sl-input>
+                        <div class="email-suggestions-dropdown">
+                        ${data?.bccChoices?.res?.map((email, index) =>
+                        `
+                        <sl-option id="email-bcc-${data?.reqId}-${index}" value="${email?.id}">${email?.id}</sl-option>
+                        `
+                        ).join('') || ''}
+                        </div>
+                    </div>
+                    <div class="email-field">
+                        <sl-input
+                        label="Subject"
+                        placeholder="Enter subject"
+                        id="email-subject-${data?.reqId}"
+                        value="${data?.content?.subject || ''}"
+                        ></sl-input>
                     </div>
                 </div>
-                <div class="email-field">
-                    <label>CC:</label>
-                    ${getEmailValue(data, 'cc')}
-                    <input type="text" placeholder="Enter email address" id = ${`email-cc-${data?.reqId}`} value = "${data?.ccChoices ? data?.ccChoices?.input : ''}" />
-                    <div class="email-suggestions-dropdown">
-                        ${data?.ccChoices ? data?.ccChoices?.res?.map((email, index) =>
-                            `<option id = email-cc-${data?.reqId}-${index} value="${email?.id}">${email?.id}</option>`
-                        ).join('') : ''}
+                <div class="email-body">
+                    <div
+                        class="email-body-container"
+                        id="email-body-${data?.reqId}"
+                        contenteditable="true"
+                        >
+                        ${data?.content?.body || ''}
                     </div>
                 </div>
-                <div class="email-field">
-                    <label>BCC:</label>
-                    ${getEmailValue(data, 'bcc')}
-                    <input type="text" placeholder="Enter email address" id = ${`email-bcc-${data?.reqId}`} value = "${data?.bccChoices ? data?.bccChoices?.input : ''}" />
-                    <div class="email-suggestions-dropdown">
-                        ${data?.bccChoices ? data?.bccChoices?.res?.map((email, index) =>
-                            `<option id = email-bcc-${data?.reqId}-${index} value="${email?.id}">${email?.id}</option>`
-                        ).join('') : ''}
+                <div class="email-footer">
+                    <div class="email-field">
+                        <sl-input
+                        type="file"
+                        id="email-attachments-${data?.reqId}"
+                        multiple
+                        ></sl-input>
                     </div>
-                </div>
-                <div class="email-field">
-                    <label>Subject:</label>
-                    <input type="text" placeholder="Enter subject" id = ${`email-subject-${data?.reqId}`} value = "${data?.content?.subject ? data?.content?.subject : ''}"/>
-                </div>
-            </div>
-            <div class="email-body">
-                <div
-                    class="email-body-container"
-                    id="${`email-body-${data?.reqId}`}"
-                    contenteditable="true"
-                >
-                    ${data?.content?.body ? data?.content?.body : ''}
-                </div>
-            </div>
-            <div class="email-footer">
-                <div class="email-field">
-                    <input type="file" id = ${`email-attachments-${data?.reqId}`} multiple></input>
-                </div>
-                <div class="email-field">
-                    ${getSmartComposeData(data)}
-                </div>
-                <div class="email-field">
-                    <button id = ${`email-send-${data?.reqId}`}>Send</button>
+                    <div class="email-field">
+                        ${getSmartComposeData(data)}
+                    </div>
+                    <div class="email-field">
+                        <sl-button id="email-send-${data?.reqId}" variant="primary">Send</sl-button>
+                    </div>
                 </div>
             </div>
         </div>
