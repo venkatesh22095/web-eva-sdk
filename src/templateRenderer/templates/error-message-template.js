@@ -4,7 +4,7 @@ export function render(data, assistantIconTemplate) {
 	const { error } = data;
 
 	let msg =
-		error?.message ||
+		error?.message || error?.msg ||
 		"Sorry, there seems to be a problem connecting to the server. Please try again later.";
 	return `
     <div class="message-bubble answer">

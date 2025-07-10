@@ -123,12 +123,16 @@ function renderAssistantQuestion(conversation, assistantIconTemplate) {
 			typeof question === "object" && question !== null
 				? question.content
 				: question;
-		if (typeof questionContent === "string") {
+
+		if (conversation?.status === "error") {
+			questionContent = "We're unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later."
+		} else if (typeof questionContent === "string") {
 			const refIndex = questionContent.indexOf("#### REFERENCES");
 			if (refIndex !== -1) {
 				questionContent = questionContent.substring(0, refIndex).trim();
 			}
 		}
+
 		return `<div class="bc-question-wrapper">
                 ${assistantIconTemplate}
                 <div class="message-text">
@@ -182,7 +186,21 @@ function createConversationHTML(
 			</div>`;
 		}
 		return content;
-	} else {
+	} else if (conversation?.status === "error") {
+		const result = renderAssistantQuestion(
+			conversation,
+			assistantIconTemplate
+		);
+		let content = result && result.isHtml ? result.html : result;
+		return `
+			<div class="completed">
+			 <br/>
+				${renderUserQuestion(conversation?.answer, userIconTemplate)}
+			 <br/>
+			${content}
+			</div>
+		`;
+	}  else {
 		if (conversation?.templateType === "search_answer") {
 			return `
                 <div class="completed">

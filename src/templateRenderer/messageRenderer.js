@@ -45,23 +45,12 @@ export function render(
 			);
 		} 
 
-		// Handle error state
-		if (data.error) {
-			return TemplateComponents.wrapTemplate(
-				errorMessage.render(data, assistantIconTemplate),
-				{
-					type: "error",
-					id: data.id,
-				}
-			);
-		}
 
 		let content = "";
-
-		// Add question bubble if needed
+	
 		if (
-			data.question &&
-			shouldShowQuestion(data.templateType, data.botConversation)
+			data?.question &&
+			shouldShowQuestion(data?.templateType, data?.botConversation)
 		) {
 			content += TemplateComponents.renderQuestionBubble(
 				data,
@@ -93,17 +82,16 @@ export function render(
 			let chip = AnsFromChip({ item: data });
 			content += chip;
 		}
-		let ele = TemplateComponents.wrapTemplate(content, {
-			type: data.templateType,
-			id: data.id,
-			className: data.className,
+		let ele = TemplateComponents?.wrapTemplate(content, {
+			type: data?.templateType,
+			id: data?.id,
+			className: data?.className,
 		});
 		return ele;
 	} catch (error) {
-		console.error("Error rendering message:", error);
 		return genericErrorTemplate.render({
 			error: {
-				message: "Failed to render message",
+				message: "Something went wrong, please try again later",
 				code: "RENDER_ERROR",
 			},
 		});
@@ -130,6 +118,10 @@ export function renderTemplateContent(
 	} else if (data?.status === "terminated") {
 		return `<div class="message-bubble answer"> 
 					I see you interrupted the answer generation. Please feel free to provide more details or let me know how can I assist you further
+				</div>`;
+	} else if (data?.error) {
+		htmlTemplate = `<div class="message-bubble answer"> 
+					We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.
 				</div>`;
 	} else {
 		switch (data.templateType) {
@@ -198,14 +190,17 @@ export function renderTemplateContent(
 			case "items_ambiguity_template":
 				htmlTemplate = itemsAmbiguityTemplate.render(data);
 				break;
-
 			default:
-				// Handle thread view or conversation
-				// if (data.thread || data.viewType === "threadView") {
-				// 	htmlTemplate = renderBotConversation(data);
-				// }
-				console.warn(`Unknown template type: ${data.templateType}`);
-				htmlTemplate = TemplateComponents.renderAnswerBubble(data);
+				if(data.hasOwnProperty("templateType")){
+					htmlTemplate = TemplateComponents.renderAnswerBubble(data);
+					return htmlTemplate;
+				}
+
+				htmlTemplate = `<div class="message-bubble answer"> 
+								We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.
+								</div>`
+				
+				
 		}
 	}
 	// Add feedback if supported
@@ -264,7 +259,7 @@ export function shouldShowQuestion(templateType, bot) {
 		"agent_welcome",
 		"generic_error",
 	];
-	// if (bot && templateType === "search_answer") return false;
+	// if ( templateType === "error_template") return true;
 	return !noQuestionTemplates.includes(templateType);
 }
 
