@@ -288,10 +288,18 @@ const ChatInterface = (props) => {
       const isHistoryAccessed = checkHistoryAccessed(questions)
       let reqId = detail?.data?.reqId
       if(isHistoryAccessed){
-        /*function to fetch the questio id based on the  requestId*/
+        // /function to fetch the questio id based on the  requestId/
         reqId = Object.entries(questions).find(([key, value]) => value?.reqId === detail?.data?.reqId)?.[0]
       }
       let question = cloneDeep(questions[reqId])
+
+      /*if api returns a non 200 response, an error, straming should be stopped */
+      if(question?.status === "error"){
+        question.streamingStatus = "aborted"
+        questions[reqId] = question
+        store.dispatch(updateChatData(questions))
+        return;
+      }
 
       if (question?.apiSuccess && question?.viewType !== "threadView") return; // Means adv search call success now no need to take socket updates, added condition for threadView
 
@@ -319,14 +327,15 @@ const ChatInterface = (props) => {
 
         } else {
           /*adding streaming for autonomous agent */
-          if(question?.viewType === "threadView"){
+          if(question?.viewType === "threadView" || question?.hasOwnProperty('botConversation')){
             /*while autonomous agent is streaming, need to add the chunked data to the outputId present in botConversation */
             if(!question?.botConversation) {
               question.botConversation = {}
             }
             if(detail?.data?.outputMessageId) {
               if(Object.values(question.botConversation)?.find(conv => conv?.outputMessageId === detail?.data?.outputMessageId)){
-                delete question?.botConversation?.[detail?.data?.outputMessageId]                                
+                delete question?.botConversation?.[detail?.data?.outputMessageId]  
+                                              
               }else{
                 question.botConversation[detail?.data?.outputMessageId] = {                    
                         question: (question?.botConversation?.[detail?.data?.outputMessageId]?.question || "").concat(detail?.data?.chunk),
@@ -340,8 +349,9 @@ const ChatInterface = (props) => {
               return;               
             }
             
-          }
-          question.answer = question?.answer?.concat(detail?.data?.chunk)
+          }else{
+            question.answer = question?.answer?.concat(detail?.data?.chunk)
+          }          
         }
 
         question.templateType = detail?.data?.templateType || "search_answer"
@@ -373,6 +383,7 @@ const ChatInterface = (props) => {
       }
     }
 
+
     const agentThoughts = (detail) => {
       let _questions = cloneDeep(state.questions)
       let reqId = detail?.data?.reqId
@@ -382,6 +393,9 @@ const ChatInterface = (props) => {
         reqId = Object.entries(_questions).find(([key, value]) => value?.reqId === detail?.data?.reqId)?.[0]
       }
       let currentQuestion = _questions[reqId]
+      if(currentQuestion?.status === "error"){
+        return;
+      }
       if(detail?.data?.answerMeta?.hasOwnProperty('messageId')) {
         currentQuestion = {...currentQuestion, ...detail?.data?.answerMeta}      
         currentQuestion.botConversation = {}  
@@ -391,9 +405,15 @@ const ChatInterface = (props) => {
         if(!currentQuestion?.botConversation) {
               currentQuestion.botConversation = {}
         }
+        /*check for the status of currentQuestion botConversation that is having outputMessageId, if it is error then return */
+        if(currentQuestion?.botConversation?.[detail?.data?.answerMeta?.outputMessageId]?.status === "error"){
+          return;
+        }
         currentQuestion.botConversation[detail?.data?.answerMeta?.outputMessageId] = {
+            "outputMessageId":detail?.data?.answerMeta?.outputMessageId,
             "suggestion":detail?.data?.suggestion,
             "thoughts":detail?.data?.answerMeta?.thoughts,
+            "status":detail?.data?.answerMeta?.status,
             "templateType": detail?.data?.templateType || "search_answer",
         }
       }      
