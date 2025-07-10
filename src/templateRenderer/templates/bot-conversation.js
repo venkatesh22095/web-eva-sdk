@@ -404,7 +404,11 @@ function renderAssistantQuestion(conversation, assistantIconTemplate) {
 				: question;
 
 		let mainContent = questionContent;
-		if (typeof questionContent === "string") {
+
+
+		if (conversation?.status === "error") {
+			mainContent = "We're unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later."
+		} else if (typeof questionContent === "string") {
 			const refIndex = questionContent.indexOf("#### REFERENCES");
 			if (refIndex !== -1) {
 				mainContent = questionContent.substring(0, refIndex).trim();
@@ -498,7 +502,24 @@ function createConversationHTML(
 			</div>`;
 		}
 		return content;
-	} else {
+	}
+	else if (conversation?.status === "error") {
+		const result = renderAssistantQuestion(
+			conversation,
+			assistantIconTemplate
+		);
+		let content = result && result.isHtml ? result.html : result;
+		return `
+			<div class="completed">
+			 <br/>
+				${renderUserQuestion(conversation?.answer, userIconTemplate)}
+			 <br/>
+			${content}
+			</div>
+		`;
+	}
+	else {
+
 		if (conversation?.templateType === "search_answer") {
 			const result = renderAssistantQuestion(
 				conversation,

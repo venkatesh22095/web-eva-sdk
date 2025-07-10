@@ -4,7 +4,7 @@ import store from '../redux/store';
 import { cloneDeep, isEmpty } from 'lodash';
 import constructGptForm from './gptTemplate/gptTemplateBody';
 import gptFormFunctionality from './gptTemplate/gptTemplateFunc';
-import { getCidByMessageId } from '../utils/helpers';
+import { generateShortUUID, getCidByMessageId } from '../utils/helpers';
 import AnswerFromChip from './AnswerFromChip';
 import { chatTemplateTypes, msgStatus } from '../utils/constants';
 import MultiResponse from './gptTemplate/MultiResponse';
@@ -237,11 +237,25 @@ export const constructQuestionPostCall = (data, qId) => {
     // }
 
     if(data?.error) {
+        /*when the api request returns error, need to update the question status accordingly */
+        
+        if (question?.viewType === "threadView"){
+            /*add error status to the child question present in the botConversation */
+            question = addErrorStateToBotConversation(questions?.[qId], data)
+        }else{
+            question.status = "error"            
+            question.templateType = "error_template"
+            question.error = data?.error
+        }
+        questions[qId] = { ...question, apiSuccess: false };
+        store.dispatch(updateChatData(questions))
+        return;
+
         // question = { ...question, error: data?.error, errInfo: data?.errInfo};
         // if(data?.errInfo?.errors[0]?.code === 'MaximumPointsExceeded'){
         //     _limitExhausted = data?.errInfo?.errors[0]
         // }
-	} else if (data?.meta?.arg?.multiIntentExecution || question?.isMultiIntentExecution) {
+    } else if (data?.meta?.arg?.multiIntentExecution || question?.isMultiIntentExecution) {
 		const stepIndex = question?.stepIndex;
 		question = { ...question, ...data?.payload, showResponse: true};
 		questions[question?.parentMsgId].executingActionId = question?.id
@@ -407,4 +421,38 @@ const removeOutputMessageId = (question, apiResponse) => {
 
         return question;
 
+    }
+
+    const addErrorStateToBotConversation = (question, resp) =>{
+        const currentQuestion = cloneDeep(question)
+        if(currentQuestion?.botConversation?.[resp?.meta?.arg?.params?.quesId]){
+            currentQuestion.botConversation[resp?.meta?.arg?.params?.quesId].status = "error"
+            currentQuestion.botConversation[resp?.meta?.arg?.params?.quesId].error = resp?.error
+        }
+        /*because of though streaming, we wont be getting the quesId in the params, so saerch for the status 'thoughtStreaming' or 'threadRunning' inside bot conversation and make its status as 'error'*/
+        const isChildQuestionHavingThoughtStreaming = Object.values(currentQuestion?.botConversation)?.find(childQuestion => childQuestion?.status === "thoughtStreaming" || childQuestion?.status === "threadRunning")
+        if(isChildQuestionHavingThoughtStreaming){
+            currentQuestion.botConversation[isChildQuestionHavingThoughtStreaming?.outputMessageId].status = "error"
+            // question.botConversation[isChildQuestionHavingThoughtStreaming?.messageId].error = resp?.error
+        }else{
+            /*if we dont have any run id's check for the question that is in in-progress status */
+        /*if we dont have runId, create a new messageId inside the botConversation and store the error */
+        const errorId = generateShortUUID()
+        currentQuestion.botConversation[errorId] = {
+            status: "error",
+            error: resp?.error,
+            answer: resp?.meta?.arg?.payload?.question,
+            messageId: errorId,
+            question: resp?.error?.message || resp?.error?.msg || "We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.",
+        }
+
+        
+        /*also make all loading status as false */
+        Object.values(currentQuestion?.botConversation)?.forEach(childQuestion => {
+            if(childQuestion?.loading){
+                delete childQuestion?.loading
+            }
+        })
+        return currentQuestion;
+    }
     }
