@@ -4,7 +4,10 @@ import BotConversation from "../../chat/botAgent/getBotConversation";
 import TemplateComponents from "./index";
 import { encodeHtml } from "../../utils/helpers";
 import customMarkdownRenderer from "../utils/customMarkdownRenderer";
-import { renderFeedbackSection, setupFeedbackEventListeners } from "./feedbackBotFlow/feedback-template";
+import {
+	renderFeedbackSection,
+	setupFeedbackEventListeners,
+} from "./feedbackBotFlow/feedback-template";
 
 function escapeHTML(str) {
 	if (!str) return "";
@@ -50,6 +53,20 @@ function downloadDocument(docId, docName, dealId, btn) {
 			alert("Failed to download document.");
 			showDocName(btn);
 		});
+}
+
+function showDocumentViewer(docId, docName, dealId, sourceChunk) {
+	// Create a custom event with document details
+	const documentViewerEvent = new CustomEvent("showDocumentViewer", {
+		detail: {
+			docId: docId,
+			docName: docName,
+			dealId: dealId,
+			sourceChunk: sourceChunk,
+		},
+	});
+
+	window.dispatchEvent(documentViewerEvent);
 }
 
 function showDocName(btn) {
@@ -164,7 +181,7 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 						</div>`;
 					} else {
 						tooltipContent += `<div class="source-footer">
-							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}">
+							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}">
 								<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 								<span class="doc-name">${encodeHtml(docName)}</span>
 								<span class="download-loader" style="display: none;"></span>
@@ -438,7 +455,7 @@ function createConversationHTML(
 			const result = renderAssistantQuestion(
 				conversation,
 				assistantIconTemplate,
-				props	
+				props
 			);
 			let content = result && result.isHtml ? result.html : result;
 			return `
@@ -617,7 +634,7 @@ function renderSourcesAccordion(sources = []) {
 														<span class="url-icon-container url"></span>
 														<span class="url-name">${encodeHtml(ref.url)}</span>
 													</a>`
-													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}">
+													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}">
 														<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 														<span class="doc-name">${encodeHtml(docName)}</span>
 														<span class="download-loader" style="display: none;"></span>
@@ -854,17 +871,19 @@ function setupSourcesAccordionListeners() {
 			const docId = downloadBtn.getAttribute("data-doc-id");
 			const docName = downloadBtn.getAttribute("data-doc-name");
 			const dealId = downloadBtn.getAttribute("data-deal-id");
+			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
 
 			// Show loader and hide doc name
-			const loader = downloadBtn.querySelector(".download-loader");
-			const docNameSpan = downloadBtn.querySelector(".doc-name");
-			if (loader && docNameSpan) {
-				loader.style.display = "inline-block";
-				docNameSpan.style.display = "none";
-			}
-			downloadBtn.disabled = true;
+			// const loader = downloadBtn.querySelector(".download-loader");
+			// const docNameSpan = downloadBtn.querySelector(".doc-name");
+			// if (loader && docNameSpan) {
+			// 	loader.style.display = "inline-block";
+			// 	docNameSpan.style.display = "none";
+			// }
+			// downloadBtn.disabled = true;
 
-			downloadDocument(docId, docName, dealId, downloadBtn);
+			// Call showDocumentViewer with source chunk data
+			showDocumentViewer(docId, docName, dealId, sourceChunk);
 			return;
 		}
 	});
@@ -1163,14 +1182,16 @@ function attachTooltipListenersToRef(ref) {
 			const docId = downloadBtn.getAttribute("data-doc-id");
 			const docName = downloadBtn.getAttribute("data-doc-name");
 			const dealId = downloadBtn.getAttribute("data-deal-id");
-			const loader = downloadBtn.querySelector(".download-loader");
-			const docNameSpan = downloadBtn.querySelector(".doc-name");
-			if (loader && docNameSpan) {
-				loader.style.display = "inline-block";
-				docNameSpan.style.display = "none";
+			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
+
+			// Close the tooltip first
+			const tooltip = downloadBtn.closest(".bc-source-tooltip");
+			if (tooltip) {
+				hideTooltip(tooltip);
 			}
-			downloadBtn.disabled = true;
-			downloadDocument(docId, docName, dealId, downloadBtn);
+
+			// Call showDocumentViewer without showing loading state
+			showDocumentViewer(docId, docName, dealId, sourceChunk);
 			return;
 		}
 	};
