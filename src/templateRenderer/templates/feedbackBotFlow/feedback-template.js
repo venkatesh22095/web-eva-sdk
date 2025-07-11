@@ -1,39 +1,38 @@
 import { submitFeedback } from "../../../redux/actions/global.action";
 import store from "../../../redux/store";
 
-
 function renderFeedbackSection(conversation, sources, props) {
-    const messageId = conversation.messageId || "default";
-    const cId = props?.reqId;
-  
-    const existingFeedback = conversation.feedback; // "like" or "dislike"
-    const existingRating = conversation.rating || 0;
-    const existingComment = conversation.comment || "";
-  
-    let iconsHtml = "";
-    let starsDisabled = "";
-    let inputDisabled = "";
-    let submitDisabled = "";
-    if (existingFeedback === "like") {
-      iconsHtml = `<button class="feedback-like-btn feedback-icon-btn selected" data-type="like" data-message-id="${messageId}" data-c-id="${cId}" title="Like">
+  const messageId = conversation.messageId || "default";
+  const cId = props?.reqId;
+
+  const existingFeedback = conversation?.userFeedback?.type; // "like" or "dislike"
+  const existingRating = conversation?.userFeedback?.rating || 0;
+  const existingComment = conversation?.userFeedback?.comment || "";
+
+  let iconsHtml = "";
+  let starsDisabled = "";
+  let inputDisabled = "";
+  let submitDisabled = "";
+  if (existingFeedback === "like") {
+    iconsHtml = `<button class="feedback-like-btn feedback-icon-btn selected" data-type="like" data-message-id="${messageId}" data-c-id="${cId}" title="Like">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="like-svg">
                   <path d="M7 22H4C3.47 22 2.96 21.79 2.59 21.41C2.21 21.04 2 20.53 2 20V13C2 12.47 2.21 11.96 2.59 11.59C2.96 11.21 3.47 11 4 11H7M14 9V5C14 4.2 13.68 3.44 13.12 2.88C12.56 2.32 11.8 2 11 2L7 11V22H18.28C18.76 22.01 19.23 21.84 19.6 21.52C19.97 21.21 20.21 20.78 20.28 20.3L21.66 11.3C21.7 11.01 21.68 10.72 21.6 10.44C21.52 10.16 21.38 9.91 21.19 9.69C21 9.47 20.77 9.29 20.5 9.18C20.24 9.06 19.95 9 19.66 9H14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
           </button>`;
-      starsDisabled = "disabled";
-      inputDisabled = "disabled";
-      submitDisabled = "disabled";
-    } else if (existingFeedback === "dislike") {
-      iconsHtml = `<button class="feedback-dislike-btn feedback-icon-btn selected" data-type="dislike" data-message-id="${messageId}" data-c-id="${cId}" title="Dislike">
+    starsDisabled = "disabled";
+    inputDisabled = "disabled";
+    submitDisabled = "disabled";
+  } else if (existingFeedback === "dislike") {
+    iconsHtml = `<button class="feedback-dislike-btn feedback-icon-btn selected" data-type="dislike" data-message-id="${messageId}" data-c-id="${cId}" title="Dislike">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="dislike-svg">
                   <path d="M17 2H20C20.53 2 21.04 2.21 21.41 2.59C21.79 2.96 22 3.47 22 4V11C22 11.53 21.79 12.04 21.41 12.41C21.04 12.79 20.53 13 20 13H17M10 15V19C10 19.8 10.32 20.56 10.88 21.12C11.44 21.68 12.2 22 13 22L17 13V2H5.72C5.24 1.99 4.77 2.16 4.4 2.48C4.03 2.79 3.79 3.22 3.72 3.7L2.34 12.7C2.3 12.99 2.32 13.28 2.4 13.56C2.48 13.84 2.62 14.09 2.81 14.31C3 14.53 3.23 14.71 3.5 14.82C3.76 14.94 4.05 15 4.34 15H10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
           </button>`;
-      starsDisabled = "disabled";
-      inputDisabled = "disabled";
-      submitDisabled = "disabled";
-    } else {
-      iconsHtml = `
+    starsDisabled = "disabled";
+    inputDisabled = "disabled";
+    submitDisabled = "disabled";
+  } else {
+    iconsHtml = `
               <button class="feedback-like-btn feedback-icon-btn" data-type="like" data-message-id="${messageId}" data-c-id="${cId}" title="Like">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="like-svg">
                       <path d="M7 22H4C3.47 22 2.96 21.79 2.59 21.41C2.21 21.04 2 20.53 2 20V13C2 12.47 2.21 11.96 2.59 11.59C2.96 11.21 3.47 11 4 11H7M14 9V5C14 4.2 13.68 3.44 13.12 2.88C12.56 2.32 11.8 2 11 2L7 11V22H18.28C18.76 22.01 19.23 21.84 19.6 21.52C19.97 21.21 20.21 20.78 20.28 20.3L21.66 11.3C21.7 11.01 21.68 10.72 21.6 10.44C21.52 10.16 21.38 9.91 21.19 9.69C21 9.47 20.77 9.29 20.5 9.18C20.24 9.06 19.95 9 19.66 9H14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -45,41 +44,43 @@ function renderFeedbackSection(conversation, sources, props) {
                   </svg>
               </button>
           `;
-    }
-  
-    const modalDisplay = "none";
-  
-    let feedbackLabel = "What did you like about this response? (optional)";
-    if (existingFeedback === "dislike") {
-      feedbackLabel = "What didn't you like about this response? (optional)";
-    }
-  
-    return `
+  }
+
+  const modalDisplay = "none";
+
+  let feedbackLabel = "What did you like about this response? (optional)";
+  if (existingFeedback === "dislike") {
+    feedbackLabel = "What didn't you like about this response? (optional)";
+  }
+
+  return `
           <div class="feedback-section ${
-        sources?.length === 0 ? "feedback-section-with-sources" : ""
-      }" data-message-id="${messageId}" data-c-id="${cId}" data-feedback-submitted="${existingFeedback || ''}">
+            sources?.length === 0 ? "feedback-section-with-sources" : ""
+          }" data-message-id="${messageId}" data-c-id="${cId}" data-feedback-submitted="${
+    existingFeedback || ""
+  }">
               <div class="feedback-actions">
                   ${iconsHtml}
               </div>
               <div class="feedback-modal" style="display:${modalDisplay};">
                   <div class="feedback-stars" style="${
-            existingFeedback ? "pointer-events:none;opacity:0.7;" : ""
-          }">
+                    existingFeedback ? "pointer-events:none;opacity:0.7;" : ""
+                  }">
                       ${[1, 2, 3, 4, 5]
-              .map(
-                (i) =>
-                  `<span class="star${
-                    existingRating >= i ? " selected" : ""
-                  }" data-star="${i}" data-message-id="${messageId}" data-c-id="${cId}" ${starsDisabled}>&#9733;</span>`
-              )
-              .join("")}
+                        .map(
+                          (i) =>
+                            `<span class="star${
+                              existingRating >= i ? " selected" : ""
+                            }" data-star="${i}" data-message-id="${messageId}" data-c-id="${cId}" ${starsDisabled}>&#9733;</span>`
+                        )
+                        .join("")}
                   </div>
                   <div class="feedback-label">${feedbackLabel}</div>
                   <div class="feedback-input-row">
                       <input class="feedback-textarea" placeholder="Please specify your feedback..." value="${existingComment.replace(
-              /"/g,
-              "&quot;"
-            )}" ${inputDisabled} />
+                        /"/g,
+                        "&quot;"
+                      )}" ${inputDisabled} />
                       <button class="feedback-submit-btn" data-message-id="${messageId}" data-c-id="${cId}" ${submitDisabled}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                               <path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -90,9 +91,8 @@ function renderFeedbackSection(conversation, sources, props) {
               </div>
           </div>
       `;
-  }
+}
 
-  
 const submitUserFeedbackBot = async ({ messageId, payload, cId }) => {
   const state = store.getState().global;
   if (state?.enableDebugging) {
@@ -149,8 +149,12 @@ function setupFeedbackEventListeners() {
       const isLike = !!likeBtn;
       const isDislike = !!dislikeBtn;
       // If feedback already exists, just show the modal (do not reset fields)
-      const feedbackModal = feedbackSection.querySelector('.feedback-modal');
-      if (feedbackSection && (feedbackSection.dataset.feedbackSubmitted === 'true' || feedbackSection.querySelector('.feedback-icon-btn.selected'))) {
+      const feedbackModal = feedbackSection.querySelector(".feedback-modal");
+      if (
+        feedbackSection &&
+        (feedbackSection.dataset.feedbackSubmitted === "true" ||
+          feedbackSection.querySelector(".feedback-icon-btn.selected"))
+      ) {
         feedbackModal.style.display = "block";
         return;
       }
@@ -183,7 +187,7 @@ function setupFeedbackEventListeners() {
       modal.style.display = "block";
 
       // Set feedback label dynamically
-      const label = modal.querySelector('.feedback-label');
+      const label = modal.querySelector(".feedback-label");
       if (label) {
         label.textContent = isLike
           ? "What did you like about this response? (optional)"
@@ -240,13 +244,16 @@ function setupFeedbackEventListeners() {
       const cId = submitBtn.getAttribute("data-c-id");
 
       const payload = {
-        feedback: type,
-        comment: comment,
-        category: [],
+        userFeedback: {
+          type: type,
+          rating: rating,
+          comment: comment,
+        },
       };
+
       submitUserFeedbackBot({ messageId, payload, cId }).then(() => {
         modal.style.display = "none";
-        window.dispatchEvent(new Event('feedbackSubmitted'));
+        window.dispatchEvent(new Event("feedbackSubmitted"));
 
         feedbackSection
           .querySelectorAll(".feedback-icon-btn")
@@ -284,7 +291,9 @@ function setupFeedbackEventListeners() {
         modal.style.display = "none";
         const feedbackSection = modal.closest(".feedback-section");
         // Only reset icons if feedback is NOT already submitted
-        const feedbackSubmitted = feedbackSection.getAttribute('data-feedback-submitted');
+        const feedbackSubmitted = feedbackSection.getAttribute(
+          "data-feedback-submitted"
+        );
         if (!feedbackSubmitted) {
           feedbackSection
             .querySelectorAll(".feedback-icon-btn")
