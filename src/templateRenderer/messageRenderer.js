@@ -200,12 +200,14 @@ export function renderTemplateContent(
 				break;
 
 			default:
-				// Handle thread view or conversation
-				// if (data.thread || data.viewType === "threadView") {
-				// 	htmlTemplate = renderBotConversation(data);
-				// }
-				console.warn(`Unknown template type: ${data.templateType}`);
-				htmlTemplate = TemplateComponents.renderAnswerBubble(data);
+				if(data.hasOwnProperty("templateType")){
+					htmlTemplate = TemplateComponents.renderAnswerBubble(data);
+					return htmlTemplate;
+				}
+				htmlTemplate = `<div class="message-bubble answer"> 
+								We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.
+								</div>`
+		
 		}
 	}
 	// Add feedback if supported
