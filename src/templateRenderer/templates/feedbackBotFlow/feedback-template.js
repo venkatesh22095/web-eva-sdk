@@ -82,9 +82,9 @@ function renderFeedbackSection(conversation, sources, props) {
                         "&quot;"
                       )}" ${inputDisabled} />
                       <button class="feedback-submit-btn" data-message-id="${messageId}" data-c-id="${cId}" ${submitDisabled}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                              <path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.52925 3.52925C5.7896 3.2689 6.21171 3.2689 6.47206 3.52925L10.4721 7.52925C10.7324 7.7896 10.7324 8.21171 10.4721 8.47206L6.47206 12.4721C6.21171 12.7324 5.7896 12.7324 5.52925 12.4721C5.2689 12.2117 5.2689 11.7896 5.52925 11.5292L9.05784 8.00065L5.52925 4.47206C5.2689 4.21171 5.2689 3.7896 5.52925 3.52925Z" fill="white"/>
+                        </svg>
                       </button>
                   </div>
                   <div class="feedback-error" style="display:none;color:#e74c3c;font-size:13px;margin-top:4px;"></div>
@@ -117,8 +117,6 @@ function updateSubmitButtonState(modal, feedbackSection) {
   const comment = modal.querySelector(".feedback-textarea").value.trim();
   const submitBtn = modal.querySelector(".feedback-submit-btn");
   if (rating === 0) {
-    submitBtn.disabled = true;
-  } else if ((rating === 1 || rating === 2) && !comment) {
     submitBtn.disabled = true;
   } else {
     submitBtn.disabled = false;
@@ -233,7 +231,7 @@ function setupFeedbackEventListeners() {
 
       // Validation
       if ((rating === 1 || rating === 2) && !comment) {
-        errorDiv.textContent = "Feedback is required for 1 or 2 star ratings.";
+        errorDiv.textContent = "Please specify the feedback to submit the response";
         errorDiv.style.display = "block";
         return;
       }
