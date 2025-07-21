@@ -52,6 +52,12 @@ function renderFeedbackSection(conversation, sources, props) {
   if (existingFeedback === "dislike") {
     feedbackLabel = "What didn't you like about this response? (optional)";
   }
+  // Remove "optional" if feedback is already submitted
+  if (existingFeedback) {
+    feedbackLabel = existingFeedback === "like" 
+      ? "What did you like about this response?" 
+      : "What didn't you like about this response?";
+  }
 
   return `
           <div class="feedback-section ${
@@ -188,8 +194,8 @@ function setupFeedbackEventListeners() {
       const label = modal.querySelector(".feedback-label");
       if (label) {
         label.textContent = isLike
-          ? "What did you like about this response? (optional)"
-          : "What didn't you like about this response? (optional)";
+          ? "What did you like about this response?"
+          : "What didn't you like about this response?";
       }
 
       // Reset modal state
@@ -214,6 +220,23 @@ function setupFeedbackEventListeners() {
         else s.classList.remove("selected");
       });
       const modal = feedbackSection.querySelector(".feedback-modal");
+      
+      // Update label based on rating
+      const label = modal.querySelector(".feedback-label");
+      const type = modal.getAttribute("data-type");
+      if (label && type) {
+        const baseText = type === "like" 
+          ? "What did you like about this response?" 
+          : "What didn't you like about this response?";
+        label.textContent = rating <= 2 ? baseText : baseText + " (optional)";
+      }
+      
+      // Hide error message when rating changes to 3-5 stars
+      const errorDiv = modal.querySelector(".feedback-error");
+      if (rating >= 3) {
+        errorDiv.style.display = "none";
+      }
+      
       updateSubmitButtonState(modal, feedbackSection);
       return;
     }
