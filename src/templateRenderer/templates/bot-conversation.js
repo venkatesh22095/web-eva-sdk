@@ -55,7 +55,7 @@ function downloadDocument(docId, docName, dealId, btn) {
 		});
 }
 
-function showDocumentViewer(docId, docName, dealId, sourceChunk) {
+function showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber) {
 	// Create a custom event with document details
 	const documentViewerEvent = new CustomEvent("showDocumentViewer", {
 		detail: {
@@ -63,6 +63,7 @@ function showDocumentViewer(docId, docName, dealId, sourceChunk) {
 			docName: docName,
 			dealId: dealId,
 			sourceChunk: sourceChunk,
+			pageNumber: pageNumber,
 		},
 	});
 
@@ -172,6 +173,10 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 						(ref.url && typeof ref.url === "string") ||
 						ref.isDirectUrl;
 
+					// Get page number if available
+					const pageNumber =
+						ref.page_number || source.reference?.page_number;
+
 					if (hasUrl) {
 						tooltipContent += `<div class="source-footer">
 							<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
@@ -181,7 +186,7 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 						</div>`;
 					} else {
 						tooltipContent += `<div class="source-footer">
-							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}">
+							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}">
 								<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 								<span class="doc-name">${encodeHtml(docName)}</span>
 								<span class="download-loader" style="display: none;"></span>
@@ -320,9 +325,9 @@ function renderAssistantQuestion(conversation, assistantIconTemplate, props) {
 
 		let mainContent = questionContent;
 
-
 		if (conversation?.status === "error") {
-			mainContent = "We're unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later."
+			mainContent =
+				"We're unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.";
 		} else if (typeof questionContent === "string") {
 			const refIndex = questionContent.indexOf("#### REFERENCES");
 			if (refIndex !== -1) {
@@ -418,8 +423,7 @@ function createConversationHTML(
 			</div>`;
 		}
 		return content;
-	}
-	else if (conversation?.status === "error") {
+	} else if (conversation?.status === "error") {
 		const result = renderAssistantQuestion(
 			conversation,
 			assistantIconTemplate
@@ -433,9 +437,7 @@ function createConversationHTML(
 			${content}
 			</div>
 		`;
-	}
-	else {
-
+	} else {
 		if (conversation?.templateType === "search_answer") {
 			const result = renderAssistantQuestion(
 				conversation,
@@ -620,6 +622,12 @@ function renderSourcesAccordion(sources = []) {
 									(ref.url && typeof ref.url === "string") ||
 									ref.isDirectUrl;
 								const docName = ref.document_name || "";
+
+								// Get page number if available
+								const pageNumber =
+									ref.page_number ||
+									source.reference?.page_number;
+
 								return `
 									<div class="source-item">
 										<div class="source-header">
@@ -634,7 +642,7 @@ function renderSourcesAccordion(sources = []) {
 														<span class="url-icon-container url"></span>
 														<span class="url-name">${encodeHtml(ref.url)}</span>
 													</a>`
-													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}">
+													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}">
 														<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 														<span class="doc-name">${encodeHtml(docName)}</span>
 														<span class="download-loader" style="display: none;"></span>
@@ -872,6 +880,7 @@ function setupSourcesAccordionListeners() {
 			const docName = downloadBtn.getAttribute("data-doc-name");
 			const dealId = downloadBtn.getAttribute("data-deal-id");
 			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
+			const pageNumber = downloadBtn.getAttribute("data-page-number");
 
 			// Show loader and hide doc name
 			// const loader = downloadBtn.querySelector(".download-loader");
@@ -882,8 +891,8 @@ function setupSourcesAccordionListeners() {
 			// }
 			// downloadBtn.disabled = true;
 
-			// Call showDocumentViewer with source chunk data
-			showDocumentViewer(docId, docName, dealId, sourceChunk);
+			// Call showDocumentViewer with source chunk data and page number
+			showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber);
 			return;
 		}
 	});
@@ -1183,6 +1192,7 @@ function attachTooltipListenersToRef(ref) {
 			const docName = downloadBtn.getAttribute("data-doc-name");
 			const dealId = downloadBtn.getAttribute("data-deal-id");
 			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
+			const pageNumber = downloadBtn.getAttribute("data-page-number");
 
 			// Close the tooltip first
 			const tooltip = downloadBtn.closest(".bc-source-tooltip");
@@ -1191,7 +1201,7 @@ function attachTooltipListenersToRef(ref) {
 			}
 
 			// Call showDocumentViewer without showing loading state
-			showDocumentViewer(docId, docName, dealId, sourceChunk);
+			showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber);
 			return;
 		}
 	};
