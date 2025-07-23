@@ -882,17 +882,38 @@ function setupSourcesAccordionListeners() {
 			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
 			const pageNumber = downloadBtn.getAttribute("data-page-number");
 
-			// Show loader and hide doc name
-			// const loader = downloadBtn.querySelector(".download-loader");
-			// const docNameSpan = downloadBtn.querySelector(".doc-name");
-			// if (loader && docNameSpan) {
-			// 	loader.style.display = "inline-block";
-			// 	docNameSpan.style.display = "none";
-			// }
-			// downloadBtn.disabled = true;
+			// Check file extension to determine action
+			const fileExtension = docName.split(".").pop()?.toLowerCase();
+			const isDownloadable = [
+				"xls",
+				"xlsx",
+				"csv",
+				"ppt",
+				"pptx",
+			].includes(fileExtension);
 
-			// Call showDocumentViewer with source chunk data and page number
-			showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber);
+			if (isDownloadable) {
+				// Show loader and hide doc name for download
+				const loader = downloadBtn.querySelector(".download-loader");
+				const docNameSpan = downloadBtn.querySelector(".doc-name");
+				if (loader && docNameSpan) {
+					loader.style.display = "inline-block";
+					docNameSpan.style.display = "none";
+				}
+				downloadBtn.disabled = true;
+
+				// Call downloadDocument for Excel and CSV files
+				downloadDocument(docId, docName, dealId, downloadBtn);
+			} else {
+				// Call showDocumentViewer for other formats
+				showDocumentViewer(
+					docId,
+					docName,
+					dealId,
+					sourceChunk,
+					pageNumber
+				);
+			}
 			return;
 		}
 	});
@@ -1194,14 +1215,42 @@ function attachTooltipListenersToRef(ref) {
 			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
 			const pageNumber = downloadBtn.getAttribute("data-page-number");
 
+			// Check file extension to determine action
+			const fileExtension = docName.split(".").pop()?.toLowerCase();
+			const isDownloadable = [
+				"xls",
+				"xlsx",
+				"csv",
+				"ppt",
+				"pptx",
+			].includes(fileExtension);
+
 			// Close the tooltip first
 			const tooltip = downloadBtn.closest(".bc-source-tooltip");
 			if (tooltip) {
 				hideTooltip(tooltip);
 			}
 
-			// Call showDocumentViewer without showing loading state
-			showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber);
+			if (isDownloadable) {
+				const loader = downloadBtn.querySelector(".download-loader");
+				const docNameSpan = downloadBtn.querySelector(".doc-name");
+				if (loader && docNameSpan) {
+					loader.style.display = "inline-block";
+					docNameSpan.style.display = "none";
+				}
+				downloadBtn.disabled = true;
+				// Call downloadDocument for Excel and CSV files
+				downloadDocument(docId, docName, dealId, downloadBtn);
+			} else {
+				// Call showDocumentViewer for other formats
+				showDocumentViewer(
+					docId,
+					docName,
+					dealId,
+					sourceChunk,
+					pageNumber
+				);
+			}
 			return;
 		}
 	};
