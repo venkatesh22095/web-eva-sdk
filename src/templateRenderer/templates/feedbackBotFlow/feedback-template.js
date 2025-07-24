@@ -13,24 +13,36 @@ function renderFeedbackSection(conversation, sources, props) {
   let starsDisabled = "";
   let inputDisabled = "";
   let submitDisabled = "";
+  
+  // Check if feedback has both rating/comment (complete feedback) or just type (incomplete feedback)
+  const hasCompleteRating = existingRating > 0;
+  const hasComment = existingComment.trim().length > 0;
+  const isCompleteFeedback = existingFeedback && (hasCompleteRating || hasComment);
+  
   if (existingFeedback === "like") {
     iconsHtml = `<button class="feedback-like-btn feedback-icon-btn selected" data-type="like" data-message-id="${messageId}" data-c-id="${cId}" title="Like">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="like-svg">
                   <path d="M7 22H4C3.47 22 2.96 21.79 2.59 21.41C2.21 21.04 2 20.53 2 20V13C2 12.47 2.21 11.96 2.59 11.59C2.96 11.21 3.47 11 4 11H7M14 9V5C14 4.2 13.68 3.44 13.12 2.88C12.56 2.32 11.8 2 11 2L7 11V22H18.28C18.76 22.01 19.23 21.84 19.6 21.52C19.97 21.21 20.21 20.78 20.28 20.3L21.66 11.3C21.7 11.01 21.68 10.72 21.6 10.44C21.52 10.16 21.38 9.91 21.19 9.69C21 9.47 20.77 9.29 20.5 9.18C20.24 9.06 19.95 9 19.66 9H14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
           </button>`;
-    starsDisabled = "disabled";
-    inputDisabled = "disabled";
-    submitDisabled = "disabled";
+    // Only disable if feedback is complete (has rating or comment)
+    if (isCompleteFeedback) {
+      starsDisabled = "disabled";
+      inputDisabled = "disabled";
+      submitDisabled = "disabled";
+    }
   } else if (existingFeedback === "dislike") {
     iconsHtml = `<button class="feedback-dislike-btn feedback-icon-btn selected" data-type="dislike" data-message-id="${messageId}" data-c-id="${cId}" title="Dislike">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="dislike-svg">
                   <path d="M17 2H20C20.53 2 21.04 2.21 21.41 2.59C21.79 2.96 22 3.47 22 4V11C22 11.53 21.79 12.04 21.41 12.41C21.04 12.79 20.53 13 20 13H17M10 15V19C10 19.8 10.32 20.56 10.88 21.12C11.44 21.68 12.2 22 13 22L17 13V2H5.72C5.24 1.99 4.77 2.16 4.4 2.48C4.03 2.79 3.79 3.22 3.72 3.7L2.34 12.7C2.3 12.99 2.32 13.28 2.4 13.56C2.48 13.84 2.62 14.09 2.81 14.31C3 14.53 3.23 14.71 3.5 14.82C3.76 14.94 4.05 15 4.34 15H10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
           </button>`;
-    starsDisabled = "disabled";
-    inputDisabled = "disabled";
-    submitDisabled = "disabled";
+    // Only disable if feedback is complete (has rating or comment)
+    if (isCompleteFeedback) {
+      starsDisabled = "disabled";
+      inputDisabled = "disabled";
+      submitDisabled = "disabled";
+    }
   } else {
     iconsHtml = `
               <button class="feedback-like-btn feedback-icon-btn" data-type="like" data-message-id="${messageId}" data-c-id="${cId}" title="Like">
@@ -48,12 +60,18 @@ function renderFeedbackSection(conversation, sources, props) {
 
   const modalDisplay = "none";
 
-  let feedbackLabel = "What did you like about this response? (optional)";
+  let feedbackLabel = "What did you like about this response?";
   if (existingFeedback === "dislike") {
-    feedbackLabel = "What didn't you like about this response? (optional)";
+    feedbackLabel = "What didn't you like about this response?";
   }
-  // Remove "optional" if feedback is already submitted
-  if (existingFeedback) {
+  // Update label based on feedback completion status
+  if (existingFeedback && !isCompleteFeedback) {
+    // Type-only feedback submitted, user can add rating/comments
+    feedbackLabel = existingFeedback === "like" 
+      ? "What did you like about this response?" 
+      : "What didn't you like about this response?";
+  } else if (isCompleteFeedback) {
+    // Complete feedback already submitted
     feedbackLabel = existingFeedback === "like" 
       ? "What did you like about this response?" 
       : "What didn't you like about this response?";
@@ -63,14 +81,18 @@ function renderFeedbackSection(conversation, sources, props) {
           <div class="feedback-section ${
             sources?.length === 0 ? "feedback-section-with-sources" : ""
           }" data-message-id="${messageId}" data-c-id="${cId}" data-feedback-submitted="${
-    existingFeedback || ""
+    existingFeedback ? "true" : ""
+  }" data-feedback-complete="${
+    isCompleteFeedback ? "true" : ""
   }">
               <div class="feedback-actions">
                   ${iconsHtml}
               </div>
-              <div class="feedback-modal" style="display:${modalDisplay};">
+              <div class="feedback-modal" style="display:${modalDisplay};" ${
+                existingFeedback ? `data-type="${existingFeedback}"` : ""
+              }>
                   <div class="feedback-stars" style="${
-                    existingFeedback ? "pointer-events:none;opacity:0.7;" : ""
+                    isCompleteFeedback ? "pointer-events:none;opacity:0.7;" : ""
                   }">
                       ${[1, 2, 3, 4, 5]
                         .map(
@@ -122,10 +144,19 @@ function updateSubmitButtonState(modal, feedbackSection) {
   const rating = feedbackSection.querySelectorAll(".star.selected").length;
   const comment = modal.querySelector(".feedback-textarea").value.trim();
   const submitBtn = modal.querySelector(".feedback-submit-btn");
+  
+  // Enable submit button based on rating and comment requirements
   if (rating === 0) {
+    // No rating selected
     submitBtn.disabled = true;
-  } else {
+  } else if (rating >= 1 && rating <= 2) {
+    // 1-2 stars: comment is required
+    submitBtn.disabled = !comment;
+  } else if (rating >= 3 && rating <= 5) {
+    // 3-5 stars: comment is optional
     submitBtn.disabled = false;
+  } else {
+    submitBtn.disabled = true;
   }
 }
 
@@ -152,14 +183,26 @@ function setupFeedbackEventListeners() {
       e.preventDefault();
       const isLike = !!likeBtn;
       const isDislike = !!dislikeBtn;
-      // If feedback already exists, just show the modal (do not reset fields)
       const feedbackModal = feedbackSection.querySelector(".feedback-modal");
+      
+      // If feedback already exists, show the modal for additional rating/comments
       if (
         feedbackSection &&
         (feedbackSection.dataset.feedbackSubmitted === "true" ||
           feedbackSection.querySelector(".feedback-icon-btn.selected"))
       ) {
         feedbackModal.style.display = "block";
+        // Ensure the type is set correctly for additional submissions
+        const type = feedbackModal.getAttribute("data-type") || (isLike ? "like" : "dislike");
+        feedbackModal.setAttribute("data-type", type);
+        
+        // Update label for additional feedback
+        const label = feedbackModal.querySelector(".feedback-label");
+        if (label) {
+          label.textContent = type === "like" 
+            ? "What did you like about this response?" 
+            : "What didn't you like about this response?";
+        }
         return;
       }
 
@@ -198,10 +241,16 @@ function setupFeedbackEventListeners() {
           : "What didn't you like about this response?";
       }
 
-      // Reset modal state
-      modal.querySelector(".feedback-textarea").value = "";
-      modal.querySelector(".feedback-error").style.display = "none";
-      modal.querySelector(".feedback-submit-btn").disabled = true;
+      // Reset modal state (only for initial submissions)
+      if (!feedbackSection.dataset.feedbackSubmitted) {
+        modal.querySelector(".feedback-textarea").value = "";
+        modal.querySelector(".feedback-error").style.display = "none";
+        modal.querySelector(".feedback-submit-btn").disabled = true;
+      } else {
+        // For additional submissions, just hide error and update submit button state
+        modal.querySelector(".feedback-error").style.display = "none";
+        updateSubmitButtonState(modal, feedbackSection);
+      }
 
       // Store type for submission
       modal.setAttribute("data-type", isLike ? "like" : "dislike");
@@ -224,14 +273,23 @@ function setupFeedbackEventListeners() {
       // Update label based on rating
       const label = modal.querySelector(".feedback-label");
       const type = modal.getAttribute("data-type");
+      const isAlreadySubmitted = feedbackSection.dataset.feedbackSubmitted === "true";
+      
       if (label && type) {
         const baseText = type === "like" 
           ? "What did you like about this response?" 
           : "What didn't you like about this response?";
-        label.textContent = rating <= 2 ? baseText : baseText + " (optional)";
+        
+        if (rating >= 1 && rating <= 2) {
+          label.textContent = baseText + " (required)";
+        } else if (rating >= 3 && rating <= 5) {
+          label.textContent = baseText + " (optional)";
+        } else {
+          label.textContent = baseText;
+        }
       }
       
-      // Hide error message when rating changes to 3-5 stars
+      // Hide error message when appropriate rating is selected
       const errorDiv = modal.querySelector(".feedback-error");
       if (rating >= 3) {
         errorDiv.style.display = "none";
@@ -251,10 +309,16 @@ function setupFeedbackEventListeners() {
       const comment = modal.querySelector(".feedback-textarea").value.trim();
       const type = modal.getAttribute("data-type");
       const errorDiv = modal.querySelector(".feedback-error");
+      const isAlreadySubmitted = feedbackSection.dataset.feedbackSubmitted === "true";
 
-      // Validation
-      if ((rating === 1 || rating === 2) && !comment) {
-        errorDiv.textContent = "Please specify the feedback to submit the response";
+      // Validation based on rating
+      if (rating === 0) {
+        errorDiv.textContent = "Please select a rating to submit";
+        errorDiv.style.display = "block";
+        return;
+      }
+      if (rating >= 1 && rating <= 2 && !comment) {
+        errorDiv.textContent = "Comments are required for ratings 1-2";
         errorDiv.style.display = "block";
         return;
       }
@@ -263,25 +327,49 @@ function setupFeedbackEventListeners() {
       // Submit feedback
       const messageId = submitBtn.getAttribute("data-message-id");
       const cId = submitBtn.getAttribute("data-c-id");
+      
+      // Ensure we have a valid type - fallback to checking the selected icon
+      let feedbackType = type;
+      if (!feedbackType) {
+        const selectedLike = feedbackSection.querySelector(".feedback-like-btn.selected");
+        const selectedDislike = feedbackSection.querySelector(".feedback-dislike-btn.selected");
+        feedbackType = selectedLike ? "like" : selectedDislike ? "dislike" : null;
+      }
 
-      const payload = {
-        userFeedback: {
-          type: type,
-          rating: rating,
-          comment: comment,
-        },
-      };
+      let payload;
+      if (isAlreadySubmitted && rating > 0) {
+        // Additional submission with rating/comments
+        payload = {
+          userFeedback: {
+            type: feedbackType,
+            rating: rating,
+            comment: comment,
+          },
+        };
+      } else {
+        // Initial submission
+        payload = {
+          userFeedback: {
+            type: feedbackType,
+            rating: rating,
+            comment: comment,
+          },
+        };
+      }
 
       submitUserFeedbackBot({ messageId, payload, cId }).then(() => {
         modal.style.display = "none";
         window.dispatchEvent(new Event("feedbackSubmitted"));
+        
+        // Mark as submitted
+        feedbackSection.setAttribute("data-feedback-submitted", "true");
 
-        feedbackSection
-          .querySelectorAll(".feedback-icon-btn")
-          .forEach((btn) => btn.classList.remove("selected"));
-        feedbackSection
-          .querySelectorAll(".star")
-          .forEach((star) => star.classList.remove("selected"));
+        // Don't reset icons after submission to show feedback was given
+        if (!isAlreadySubmitted) {
+          feedbackSection
+            .querySelectorAll(".star")
+            .forEach((star) => star.classList.remove("selected"));
+        }
       });
       return;
     }
@@ -309,24 +397,66 @@ function setupFeedbackEventListeners() {
         !modal.contains(e.target) &&
         !e.target.closest(".feedback-icon-btn")
       ) {
-        modal.style.display = "none";
         const feedbackSection = modal.closest(".feedback-section");
-        // Only reset icons if feedback is NOT already submitted
         const feedbackSubmitted = feedbackSection.getAttribute(
           "data-feedback-submitted"
         );
+        
+        // Check if user had selected like/dislike but hasn't submitted feedback yet
         if (!feedbackSubmitted) {
-          feedbackSection
-            .querySelectorAll(".feedback-icon-btn")
-            .forEach((btn) => btn.classList.remove("selected"));
-          // Restore both icons
-          const likeIcon = feedbackSection.querySelector(".feedback-like-btn");
-          const dislikeIcon = feedbackSection.querySelector(
-            ".feedback-dislike-btn"
-          );
-          if (likeIcon) likeIcon.style.display = "";
-          if (dislikeIcon) dislikeIcon.style.display = "";
+          const selectedIcon = feedbackSection.querySelector(".feedback-icon-btn.selected");
+          
+          if (selectedIcon) {
+            // User clicked like/dislike but is closing modal without submitting
+            const type = modal.getAttribute("data-type");
+            const messageId = feedbackSection.getAttribute("data-message-id");
+            const cId = feedbackSection.getAttribute("data-c-id");
+            const rating = feedbackSection.querySelectorAll(".star.selected").length;
+            const comment = modal.querySelector(".feedback-textarea").value.trim();
+            
+            if (type && messageId) {
+              let payload;
+              
+              if (rating >= 3 && rating <= 5) {
+                // For 3-5 stars, auto-submit with type and rating (comments optional)
+                payload = {
+                  userFeedback: {
+                    type: type,
+                    rating: rating,
+                    comment: comment
+                  }
+                };
+              } else {
+                // For no rating or 1-2 stars, auto-submit with only type
+                payload = {
+                  userFeedback: {
+                    type: type
+                  }
+                };
+              }
+              
+              submitUserFeedbackBot({ messageId, payload, cId }).then(() => {
+                window.dispatchEvent(new Event("feedbackSubmitted"));
+                // Mark as submitted so user can add rating/comments later
+                feedbackSection.setAttribute("data-feedback-submitted", "true");
+              });
+            }
+          } else {
+            // No selection made, just reset icons
+            feedbackSection
+              .querySelectorAll(".feedback-icon-btn")
+              .forEach((btn) => btn.classList.remove("selected"));
+            // Restore both icons
+            const likeIcon = feedbackSection.querySelector(".feedback-like-btn");
+            const dislikeIcon = feedbackSection.querySelector(
+              ".feedback-dislike-btn"
+            );
+            if (likeIcon) likeIcon.style.display = "";
+            if (dislikeIcon) dislikeIcon.style.display = "";
+          }
         }
+        
+        modal.style.display = "none";
       }
     });
   });
