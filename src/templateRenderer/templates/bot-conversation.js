@@ -55,7 +55,14 @@ function downloadDocument(docId, docName, dealId, btn) {
 		});
 }
 
-function showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber) {
+function showDocumentViewer(
+	docId,
+	docName,
+	dealId,
+	sourceChunk,
+	pageNumber,
+	chunkTitle
+) {
 	// Create a custom event with document details
 	const documentViewerEvent = new CustomEvent("showDocumentViewer", {
 		detail: {
@@ -64,6 +71,7 @@ function showDocumentViewer(docId, docName, dealId, sourceChunk, pageNumber) {
 			dealId: dealId,
 			sourceChunk: sourceChunk,
 			pageNumber: pageNumber,
+			chunkTitle: chunkTitle,
 		},
 	});
 
@@ -186,7 +194,7 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 						</div>`;
 					} else {
 						tooltipContent += `<div class="source-footer">
-							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}">
+							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
 								<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 								<span class="doc-name">${encodeHtml(docName)}</span>
 								<span class="download-loader" style="display: none;"></span>
@@ -642,7 +650,7 @@ function renderSourcesAccordion(sources = []) {
 														<span class="url-icon-container url"></span>
 														<span class="url-name">${encodeHtml(ref.url)}</span>
 													</a>`
-													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}">
+													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
 														<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 														<span class="doc-name">${encodeHtml(docName)}</span>
 														<span class="download-loader" style="display: none;"></span>
@@ -906,12 +914,14 @@ function setupSourcesAccordionListeners() {
 				downloadDocument(docId, docName, dealId, downloadBtn);
 			} else {
 				// Call showDocumentViewer for other formats
+				const chunkTitle = downloadBtn.getAttribute("data-chunk-title");
 				showDocumentViewer(
 					docId,
 					docName,
 					dealId,
 					sourceChunk,
-					pageNumber
+					pageNumber,
+					chunkTitle
 				);
 			}
 			return;
@@ -1243,12 +1253,14 @@ function attachTooltipListenersToRef(ref) {
 				downloadDocument(docId, docName, dealId, downloadBtn);
 			} else {
 				// Call showDocumentViewer for other formats
+				const chunkTitle = downloadBtn.getAttribute("data-chunk-title");
 				showDocumentViewer(
 					docId,
 					docName,
 					dealId,
 					sourceChunk,
-					pageNumber
+					pageNumber,
+					chunkTitle
 				);
 			}
 			return;
