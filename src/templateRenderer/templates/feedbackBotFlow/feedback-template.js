@@ -50,11 +50,13 @@ function updateFeedbackAttributes(feedbackSection, { type, rating, comment }) {
   }
 }
 
-function createPayload(type, rating = 0, comment = "") {
+function createPayload(type, rating = 0, comment = "", resetRating = false) {
   const payload = { userFeedback: { type } };
 
   if (rating > 0) {
-    payload.userFeedback.rating = rating;
+    if (!resetRating) {
+      payload.userFeedback.rating = rating;
+    }
   }
 
   if (comment) {
@@ -80,7 +82,10 @@ async function submitFeedbackData(messageId, payload, cId, feedbackSection) {
   }
 
   // type and rating are submitted
-  if (isTypeAndRatingSubmitted && !payload.userFeedback?.comment?.trim()?.length) {
+  if (
+    isTypeAndRatingSubmitted &&
+    !payload.userFeedback?.comment?.trim()?.length
+  ) {
     return;
   }
 
@@ -93,13 +98,13 @@ async function submitFeedbackData(messageId, payload, cId, feedbackSection) {
   }
 }
 
-function shouldSubmitFeedback(rating, comment) {
+function shouldSubmitFeedback(rating, comment,existingFeedback = false) {
   if (rating === RATING_RANGES.NONE) {
     return { shouldSubmit: true, payload: null }; // Type-only submission
   }
 
   if (isLowRating(rating)) {
-    return { shouldSubmit: !!comment, resetRating: !comment };
+    return { shouldSubmit: existingFeedback ? false : true, resetRating: !comment };
   }
 
   if (isHighRating(rating)) {
@@ -491,7 +496,12 @@ function handleFirstTimeModalClose(modal, feedbackSection) {
       }
 
       if (submission.shouldSubmit) {
-        const payload = createPayload(type, rating, comment);
+        const payload = createPayload(
+          type,
+          rating,
+          comment,
+          submission.resetRating
+        );
         submitFeedbackData(messageId, payload, cId, feedbackSection);
       }
     }
@@ -507,14 +517,14 @@ function handleExistingFeedbackModalClose(modal, feedbackSection) {
   );
 
   if (type && messageId && rating > 0) {
-    const submission = shouldSubmitFeedback(rating, comment);
+    const submission = shouldSubmitFeedback(rating, comment,true);
 
     if (submission.resetRating) {
       resetStars(feedbackSection);
     }
 
     if (submission.shouldSubmit) {
-      const payload = createPayload(type, rating, comment);
+      const payload = createPayload(type, rating, comment, submission.resetRating,);
       submitFeedbackData(messageId, payload, cId, feedbackSection);
     }
   }
