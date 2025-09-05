@@ -1,92 +1,92 @@
 {
-  "name": "eva-web-sdk",
-  "version": "1.1.36-rc.2.1.0",
-  "description": "",
-  "main": "dist/index.cjs.js",
-  "style": "dist/sdk-styles.css",
-  "module": "dist/index.esm.js",
-  "scripts": {
-    "serve": "vite",
-    "build": "rollup -c"
-  },
-  "dependencies": {
-    "@koredev/kore-web-sdk": "^11.9.0-rc.9d91139",
-    "@reduxjs/toolkit": "^2.2.6",
-    "@rollup/plugin-alias": "^5.1.0",
-    "@rollup/plugin-replace": "^5.0.7",
-    "axios": "^1.7.2",
-    "choices.js": "^11.0.2",
-    "dompurify": "^3.2.5",
-    "html-dom-parser": "^5.0.12",
-    "lodash": "^4.17.21",
-    "marked": "^2.1.3",
-    "moment": "^2.30.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "redux-thunk": "^3.1.0",
-    "sass": "^1.89.0",
-    "socket.io-client": "2.4.0",
-    "uuid": "^10.0.0"
-  },
-  "peerDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "vite": "^5.3.4"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "files": [
-    "dist"
-  ],
-  "exports": {
-    ".": {
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.cjs.js"
-    },
-    "./components": {
-      "import": "./dist/components/index.esm.js",
-      "require": "./dist/components/index.cjs.js"
-    },
-    "./history": {
-      "import": "./dist/history/index.esm.js",
-      "require": "./dist/history/index.cjs.js"
-    },
-    "./widgets": {
-      "import": "./dist/widgets/index.esm.js",
-      "require": "./dist/widgets/index.cjs.js"
-    },
-    "./chat": {
-      "import": "./dist/chat/index.esm.js",
-      "require": "./dist/chat/index.cjs.js"
-    },
-    "./agents": {
-      "import": "./dist/agents/index.esm.js",
-      "require": "./dist/agents/index.cjs.js"
-    },
-    "./files": {
-      "import": "./dist/files/index.esm.js",
-      "require": "./dist/files/index.cjs.js"
-    }
-  },
-  "devDependencies": {
-    "@babel/cli": "^7.24.6",
-    "@babel/core": "^7.24.6",
-    "@babel/preset-env": "^7.24.6",
-    "@babel/preset-react": "^7.24.6",
-    "@rollup/plugin-babel": "^6.0.4",
-    "@rollup/plugin-commonjs": "^25.0.8",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@vitejs/plugin-react": "^4.3.1",
-    "rollup": "^2.79.1",
-    "rollup-plugin-node-builtins": "^2.1.2",
-    "rollup-plugin-node-globals": "^1.4.0",
-    "rollup-plugin-polyfill-node": "^0.13.0",
-    "rollup-plugin-postcss": "^4.0.2",
-    "rollup-plugin-terser": "^7.0.2",
-    "sass-embedded": "^1.83.0",
-    "vite": "^5.3.4"
-  }
+	"name": "eva-web-sdk",
+	"version": "1.1.36-rc.2.3.0",
+	"description": "",
+	"main": "dist/index.cjs.js",
+	"style": "dist/sdk-styles.css",
+	"module": "dist/index.esm.js",
+	"scripts": {
+		"serve": "vite",
+		"build": "rollup -c"
+	},
+	"dependencies": {
+		"@koredev/kore-web-sdk": "^11.9.0-rc.9d91139",
+		"@reduxjs/toolkit": "^2.2.6",
+		"@rollup/plugin-alias": "^5.1.0",
+		"@rollup/plugin-replace": "^5.0.7",
+		"axios": "^1.7.2",
+		"choices.js": "^11.0.2",
+		"dompurify": "^3.2.5",
+		"html-dom-parser": "^5.0.12",
+		"lodash": "^4.17.21",
+		"marked": "^2.1.3",
+		"moment": "^2.30.1",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"redux-thunk": "^3.1.0",
+		"sass": "^1.89.0",
+		"socket.io-client": "2.4.0",
+		"uuid": "^10.0.0"
+	},
+	"peerDependencies": {
+		"@vitejs/plugin-react": "^4.3.1",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"vite": "^5.3.4"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.esm.js",
+			"require": "./dist/index.cjs.js"
+		},
+		"./components": {
+			"import": "./dist/components/index.esm.js",
+			"require": "./dist/components/index.cjs.js"
+		},
+		"./history": {
+			"import": "./dist/history/index.esm.js",
+			"require": "./dist/history/index.cjs.js"
+		},
+		"./widgets": {
+			"import": "./dist/widgets/index.esm.js",
+			"require": "./dist/widgets/index.cjs.js"
+		},
+		"./chat": {
+			"import": "./dist/chat/index.esm.js",
+			"require": "./dist/chat/index.cjs.js"
+		},
+		"./agents": {
+			"import": "./dist/agents/index.esm.js",
+			"require": "./dist/agents/index.cjs.js"
+		},
+		"./files": {
+			"import": "./dist/files/index.esm.js",
+			"require": "./dist/files/index.cjs.js"
+		}
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.24.6",
+		"@babel/core": "^7.24.6",
+		"@babel/preset-env": "^7.24.6",
+		"@babel/preset-react": "^7.24.6",
+		"@rollup/plugin-babel": "^6.0.4",
+		"@rollup/plugin-commonjs": "^25.0.8",
+		"@rollup/plugin-json": "^6.1.0",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@vitejs/plugin-react": "^4.3.1",
+		"rollup": "^2.79.1",
+		"rollup-plugin-node-builtins": "^2.1.2",
+		"rollup-plugin-node-globals": "^1.4.0",
+		"rollup-plugin-polyfill-node": "^0.13.0",
+		"rollup-plugin-postcss": "^4.0.2",
+		"rollup-plugin-terser": "^7.0.2",
+		"sass-embedded": "^1.83.0",
+		"vite": "^5.3.4"
+	}
 }
