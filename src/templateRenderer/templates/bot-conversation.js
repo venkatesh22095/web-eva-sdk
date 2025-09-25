@@ -511,9 +511,9 @@ function parseReference(ref) {
 		// Check if it's a direct URL
 		if (ref.startsWith("http://") || ref.startsWith("https://")) {
 			return { url: ref, isDirectUrl: true };
-		} else {
-			// Check if it includes search_snp_data
-			//if (ref.includes("search_snp_data")) {
+		}
+		// Check if it includes search_snp_data
+		if (ref === "SNP") {
 			return { isSnpData: true, displayText: "S&P Capital IQ" };
 		}
 		// Try to parse as JSON
