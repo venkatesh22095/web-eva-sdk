@@ -19,15 +19,19 @@ function escapeHTML(str) {
 		?.replace(/'/g, "&#039;");
 }
 
-function downloadDocument(docId, docName, dealId, btn) {
+function downloadDocument(docId, docName, dealId, btn, fundId) {
 	const { url, token } = window.sdkConfig.customConfigURL || {};
-	if (!url || !token || !docId || !dealId) {
+	if (!url || !token || !docId || (!dealId && !fundId)) {
 		alert("Missing download parameters.");
 		showDocName(btn);
 		return;
 	}
 
-	fetch(`${url}/deals/${dealId}/documents/${docId}/download`, {
+	const downloadUrl = fundId
+		? `${url}/funds/${fundId}/documents/${docId}/download`
+		: `${url}/deals/${dealId}/documents/${docId}/download`;
+
+	fetch(downloadUrl, {
 		method: "GET",
 		headers: {
 			Authorization: `Bearer ${token}`,
@@ -38,15 +42,15 @@ function downloadDocument(docId, docName, dealId, btn) {
 			return response.blob();
 		})
 		.then((blob) => {
-			const downloadUrl = window.URL.createObjectURL(blob);
+			const fileUrl = window.URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.style.display = "none";
-			a.href = downloadUrl;
+			a.href = fileUrl;
 			a.download = docName || "document";
 			document.body.appendChild(a);
 			a.click();
 			document.body.removeChild(a);
-			window.URL.revokeObjectURL(downloadUrl);
+			window.URL.revokeObjectURL(fileUrl);
 			showDocName(btn);
 		})
 		.catch(() => {
@@ -61,7 +65,8 @@ function showDocumentViewer(
 	dealId,
 	sourceChunk,
 	pageNumber,
-	chunkTitle
+	chunkTitle,
+	fundId
 ) {
 	// Create a custom event with document details
 	const documentViewerEvent = new CustomEvent("showDocumentViewer", {
@@ -69,6 +74,7 @@ function showDocumentViewer(
 			docId: docId,
 			docName: docName,
 			dealId: dealId,
+			fundId: fundId,
 			sourceChunk: sourceChunk,
 			pageNumber: pageNumber,
 			chunkTitle: chunkTitle,
@@ -192,9 +198,16 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 								<span class="url-name">${encodeHtml(ref.url)}</span>
 							</a>
 						</div>`;
+					} else if (ref.isSnpData) {
+						tooltipContent += `<div class="source-footer">
+							<div class="snp-data-reference">
+								<span class="doc-icon-container snp"></span>
+								<span class="text-content">${encodeHtml(ref.displayText)}</span>
+							</div>
+						</div>`;
 					} else {
 						tooltipContent += `<div class="source-footer">
-							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
+							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-fund-id="${encodeHtml(ref.fund_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
 								<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 								<span class="doc-name">${encodeHtml(docName)}</span>
 								<span class="download-loader" style="display: none;"></span>
@@ -278,8 +291,8 @@ function injectTooltipIcons(rootNode, sources) {
 		const idx = parseInt(ref.getAttribute("data-source-idx"), 10);
 		const source = sources[idx];
 		if (source) {
-			const docName = source.reference?.document_name || "";
-			const docIcon = getDocumentIcon(docName);
+			const parsedRef = parseReference(source.reference);
+
 			// Only inject SVG icons into icon containers that are NOT in tooltip footers
 			const iconContainer = ref.querySelector(".doc-icon-container");
 			if (iconContainer) {
@@ -291,11 +304,20 @@ function injectTooltipIcons(rootNode, sources) {
 				// Only inject if NOT in tooltip or tooltip footer
 				if (!isInTooltip && !isInTooltipFooter) {
 					iconContainer.innerHTML = "";
-					if (docIcon) {
-						const temp = document.createElement("div");
-						temp.innerHTML = docIcon;
-						const svg = temp.querySelector("svg");
-						if (svg) iconContainer.appendChild(svg);
+
+					if (parsedRef.isSnpData) {
+						// For S&P data, add CSS class for styling
+						iconContainer.classList.add("snp");
+					} else {
+						// For other document types, inject SVG icon
+						const docName = source.reference?.document_name || "";
+						const docIcon = getDocumentIcon(docName);
+						if (docIcon) {
+							const temp = document.createElement("div");
+							temp.innerHTML = docIcon;
+							const svg = temp.querySelector("svg");
+							if (svg) iconContainer.appendChild(svg);
+						}
 					}
 				}
 			}
@@ -490,6 +512,11 @@ function parseReference(ref) {
 		if (ref.startsWith("http://") || ref.startsWith("https://")) {
 			return { url: ref, isDirectUrl: true };
 		}
+		//TODO: change this to check if it includes search_snp_data
+		// Check if it includes search_snp_data
+		if (ref === "SNP" || ref.includes("_snp_")) {
+			return { isSnpData: true, displayText: "S&P Capital IQ" };
+		}
 		// Try to parse as JSON
 		try {
 			const jsonStr = ref.replace(/'/g, '"');
@@ -584,6 +611,7 @@ function getDocumentIcon(docName = "") {
 }
 
 function getDocumentIconClass(docName = "") {
+	if (docName === "snp") return "snp";
 	const extension = docName.split(".").pop()?.toLowerCase();
 	if (["doc", "docx"].includes(extension)) return "doc";
 	if (["xlsx", "xls", "csv"].includes(extension)) return "xls";
@@ -650,7 +678,12 @@ function renderSourcesAccordion(sources = []) {
 														<span class="url-icon-container url"></span>
 														<span class="url-name">${encodeHtml(ref.url)}</span>
 													</a>`
-													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
+													: ref.isSnpData
+														? `<div class="snp-data-reference">
+														<span class="doc-icon-container snp"></span>
+														<span class="text-content">${encodeHtml(ref.displayText)}</span>
+													</div>`
+														: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-fund-id="${encodeHtml(ref.fund_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
 														<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 														<span class="doc-name">${encodeHtml(docName)}</span>
 														<span class="download-loader" style="display: none;"></span>
@@ -887,6 +920,7 @@ function setupSourcesAccordionListeners() {
 			const docId = downloadBtn.getAttribute("data-doc-id");
 			const docName = downloadBtn.getAttribute("data-doc-name");
 			const dealId = downloadBtn.getAttribute("data-deal-id");
+			const fundId = downloadBtn.getAttribute("data-fund-id");
 			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
 			const pageNumber = downloadBtn.getAttribute("data-page-number");
 
@@ -911,7 +945,7 @@ function setupSourcesAccordionListeners() {
 				downloadBtn.disabled = true;
 
 				// Call downloadDocument for Excel and CSV files
-				downloadDocument(docId, docName, dealId, downloadBtn);
+				downloadDocument(docId, docName, dealId, downloadBtn, fundId);
 			} else {
 				// Call showDocumentViewer for other formats
 				const chunkTitle = downloadBtn.getAttribute("data-chunk-title");
@@ -921,7 +955,8 @@ function setupSourcesAccordionListeners() {
 					dealId,
 					sourceChunk,
 					pageNumber,
-					chunkTitle
+					chunkTitle,
+					fundId
 				);
 			}
 			return;
@@ -1222,6 +1257,7 @@ function attachTooltipListenersToRef(ref) {
 			const docId = downloadBtn.getAttribute("data-doc-id");
 			const docName = downloadBtn.getAttribute("data-doc-name");
 			const dealId = downloadBtn.getAttribute("data-deal-id");
+			const fundId = downloadBtn.getAttribute("data-fund-id");
 			const sourceChunk = downloadBtn.getAttribute("data-source-chunk");
 			const pageNumber = downloadBtn.getAttribute("data-page-number");
 
@@ -1250,7 +1286,7 @@ function attachTooltipListenersToRef(ref) {
 				}
 				downloadBtn.disabled = true;
 				// Call downloadDocument for Excel and CSV files
-				downloadDocument(docId, docName, dealId, downloadBtn);
+				downloadDocument(docId, docName, dealId, downloadBtn, fundId);
 			} else {
 				// Call showDocumentViewer for other formats
 				const chunkTitle = downloadBtn.getAttribute("data-chunk-title");
@@ -1260,7 +1296,8 @@ function attachTooltipListenersToRef(ref) {
 					dealId,
 					sourceChunk,
 					pageNumber,
-					chunkTitle
+					chunkTitle,
+					fundId
 				);
 			}
 			return;
