@@ -173,12 +173,16 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 					// Build tooltip content with proper escaping
 					let tooltipContent = `<div class="source-header"><span class="source-index">${match[1]}</span>`;
 					if (source.title) {
-						tooltipContent += `<span class="source-title">${escapeHTML(source.title)}</span>`;
+						tooltipContent += `<span class="source-title">${escapeHTML(
+							source.title
+						)}</span>`;
 					}
 					tooltipContent += `</div>`;
 
 					if (source.chunk) {
-						tooltipContent += `<div class="source-content">${escapeHTML(source.chunk)}</div>`;
+						tooltipContent += `<div class="source-content">${escapeHTML(
+							source.chunk
+						)}</div>`;
 					}
 
 					// Check if source has URL or needs download
@@ -193,7 +197,9 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 
 					if (hasUrl) {
 						tooltipContent += `<div class="source-footer">
-							<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
+							<a href="${encodeHtml(
+								ref.url
+							)}" target="_blank" rel="noopener noreferrer" class="source-link">
 								<span class="url-icon-container url"></span>
 								<span class="url-name">${encodeHtml(ref.url)}</span>
 							</a>
@@ -207,7 +213,21 @@ function replaceReferencesWithTooltips(rootNode, sources) {
 						</div>`;
 					} else {
 						tooltipContent += `<div class="source-footer">
-							<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-fund-id="${encodeHtml(ref.fund_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
+							<button class="doc-download-btn" data-doc-id="${encodeHtml(
+								ref.document_id || ""
+							)}" data-doc-name="${encodeHtml(
+							docName
+						)}" data-deal-id="${encodeHtml(
+							ref.deal_id || ""
+						)}" data-fund-id="${encodeHtml(
+							ref.fund_id || ""
+						)}" data-source-chunk="${encodeHtml(
+							source.chunk || ""
+						)}" data-page-number="${encodeHtml(
+							pageNumber || ""
+						)}" data-chunk-title="${encodeHtml(
+							source.title || ""
+						)}">
 								<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 								<span class="doc-name">${encodeHtml(docName)}</span>
 								<span class="download-loader" style="display: none;"></span>
@@ -374,7 +394,15 @@ function renderAssistantQuestion(conversation, assistantIconTemplate, props) {
 				<div class="bc-tooltip-content"></div>
 				<div class="bottom-container">
 					${sourcesHtml}
-					${question && showFeedbackOption ? renderFeedbackSection(conversation, sources, props) : ""}
+					${
+						question && showFeedbackOption
+							? renderFeedbackSection(
+									conversation,
+									sources,
+									props
+							  )
+							: ""
+					}
 				</div>
 			</div>
 		`;
@@ -514,7 +542,11 @@ function parseReference(ref) {
 		}
 		//TODO: change this to check if it includes search_snp_data
 		// Check if it includes search_snp_data
-		if (ref === "SNP" || ref.includes("_snp_")) {
+		if (
+			ref === "SNP" ||
+			ref.includes("_snp_") ||
+			ref.includes("function")
+		) {
 			return { isSnpData: true, displayText: "S&P Capital IQ" };
 		}
 		// Try to parse as JSON
@@ -623,7 +655,9 @@ function renderSourcesAccordion(sources = []) {
 	if (!sources.length) return "";
 
 	const sourceCount = sources.length;
-	const sourcesText = `${sourceCount} ${sourceCount === 1 ? "Source" : "Sources"}`;
+	const sourcesText = `${sourceCount} ${
+		sourceCount === 1 ? "Source" : "Sources"
+	}`;
 
 	let html = `
 		<div class="sourcesAccordionCntr">
@@ -668,22 +702,51 @@ function renderSourcesAccordion(sources = []) {
 									<div class="source-item">
 										<div class="source-header">
 											<span class="source-index">${idx + 1}</span>
-											${source.title ? `<span class="source-title">${encodeHtml(source.title)}</span>` : ""}
+											${
+												source.title
+													? `<span class="source-title">${encodeHtml(
+															source.title
+													  )}</span>`
+													: ""
+											}
 										</div>
-										${source.chunk ? `<div class="source-content">${customMarkdownRenderer(escapeHTML(source.chunk))}</div>` : ""}
+										${
+											source.chunk
+												? `<div class="source-content">${customMarkdownRenderer(
+														escapeHTML(source.chunk)
+												  )}</div>`
+												: ""
+										}
 										<div class="source-footer">
 											${
 												hasUrl
-													? `<a href="${encodeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="source-link">
+													? `<a href="${encodeHtml(
+															ref.url
+													  )}" target="_blank" rel="noopener noreferrer" class="source-link">
 														<span class="url-icon-container url"></span>
 														<span class="url-name">${encodeHtml(ref.url)}</span>
 													</a>`
 													: ref.isSnpData
-														? `<div class="snp-data-reference">
+													? `<div class="snp-data-reference">
 														<span class="doc-icon-container snp"></span>
 														<span class="text-content">${encodeHtml(ref.displayText)}</span>
 													</div>`
-														: `<button class="doc-download-btn" data-doc-id="${encodeHtml(ref.document_id || "")}" data-doc-name="${encodeHtml(docName)}" data-deal-id="${encodeHtml(ref.deal_id || "")}" data-fund-id="${encodeHtml(ref.fund_id || "")}" data-source-chunk="${encodeHtml(source.chunk || "")}" data-page-number="${encodeHtml(pageNumber || "")}" data-chunk-title="${encodeHtml(source.title || "")}">
+													: `<button class="doc-download-btn" data-doc-id="${encodeHtml(
+															ref.document_id ||
+																""
+													  )}" data-doc-name="${encodeHtml(
+															docName
+													  )}" data-deal-id="${encodeHtml(
+															ref.deal_id || ""
+													  )}" data-fund-id="${encodeHtml(
+															ref.fund_id || ""
+													  )}" data-source-chunk="${encodeHtml(
+															source.chunk || ""
+													  )}" data-page-number="${encodeHtml(
+															pageNumber || ""
+													  )}" data-chunk-title="${encodeHtml(
+															source.title || ""
+													  )}">
 														<span class="doc-icon-container ${getDocumentIconClass(docName)}"></span>
 														<span class="doc-name">${encodeHtml(docName)}</span>
 														<span class="download-loader" style="display: none;"></span>
@@ -1188,9 +1251,9 @@ function attachTooltipListenersToRef(ref) {
 
 			const isInBridge = bridgeRect
 				? e.clientX >= bridgeRect.left &&
-					e.clientX <= bridgeRect.right &&
-					e.clientY >= bridgeRect.top &&
-					e.clientY <= bridgeRect.bottom
+				  e.clientX <= bridgeRect.right &&
+				  e.clientY >= bridgeRect.top &&
+				  e.clientY <= bridgeRect.bottom
 				: false;
 
 			const isInRef =
