@@ -358,20 +358,44 @@ function renderQuestion(question, sources) {
 function renderAssistantQuestion(conversation, assistantIconTemplate, props) {
 	let showFeedbackOption = window.sdkConfig.showFeedbackOption;
 	const { question, thoughts } = conversation;
+	let transformedQuestion = question;
+
+	const startDelimiter = "###<<<###";
+	const endDelimiter = "###>>>###";
+
+	// Handle delimiter extraction for string-type questions
+	if (typeof transformedQuestion === "string" && 
+		transformedQuestion.includes(startDelimiter) && 
+		transformedQuestion.includes(endDelimiter)) {
+		const startIndex = transformedQuestion.indexOf(startDelimiter) + startDelimiter.length;
+		const endIndex = transformedQuestion.indexOf(endDelimiter);
+		
+		if (startIndex < endIndex) {
+			const finalQuestion = transformedQuestion.substring(startIndex, endIndex);
+			try {
+				transformedQuestion = JSON.parse(finalQuestion);
+			} catch (e) {
+				// If JSON parsing fails, use the extracted string as-is
+				console.warn("Failed to parse question JSON, using as string:", e);
+				transformedQuestion = finalQuestion;
+			}
+		}
+	}
+
 	const sources =
-		question &&
-		typeof question === "object" &&
-		Array.isArray(question.sources)
-			? question.sources
+		transformedQuestion &&
+		typeof transformedQuestion === "object" &&
+		Array.isArray(transformedQuestion.sources)
+			? transformedQuestion.sources
 			: [];
 
-	if (question || thoughts?.length || (sources && sources.length)) {
+	if (transformedQuestion || thoughts?.length || (sources && sources.length)) {
 		const sourcesHtml =
 			sources && sources.length ? renderSourcesAccordion(sources) : "";
 		let questionContent =
-			typeof question === "object" && question !== null
-				? question.content
-				: question;
+			typeof transformedQuestion === "object" && transformedQuestion !== null
+				? transformedQuestion.content
+				: transformedQuestion;
 
 		let mainContent = questionContent;
 
@@ -379,9 +403,9 @@ function renderAssistantQuestion(conversation, assistantIconTemplate, props) {
 			mainContent =
 				"We're unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.";
 		} else if (typeof questionContent === "string") {
-			const refIndex = questionContent.indexOf("#### REFERENCES");
-			if (refIndex !== -1) {
-				mainContent = questionContent.substring(0, refIndex).trim();
+				const refIndex = questionContent.indexOf("#### REFERENCES");
+				if (refIndex !== -1) {
+					mainContent = questionContent.substring(0, refIndex).trim();
 			}
 		}
 
@@ -539,14 +563,10 @@ function parseReference(ref) {
 		// Check if it's a direct URL
 		if (ref.startsWith("http://") || ref.startsWith("https://")) {
 			return { url: ref, isDirectUrl: true };
-		}
+		} 
 		//TODO: change this to check if it includes search_snp_data
-		// Check if it includes search_snp_data
-		if (
-			ref === "SNP" ||
-			ref.includes("_snp_") ||
-			ref.includes("function")
-		) {
+        // Check if it includes search_snp_data
+        if (ref === "SNP" || ref.includes("snp") || ref.includes("function")) {
 			return { isSnpData: true, displayText: "S&P Capital IQ" };
 		}
 		// Try to parse as JSON
