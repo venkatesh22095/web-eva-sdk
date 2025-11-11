@@ -105,6 +105,17 @@ const ChatTestComp = (props) => {
                                     {item?.answerFrom_html && <div onClick={() => AskFollowup(item)}>Ask followup</div>}
                                     {!item?.disableFeedback && <div>
                                         <button onClick={() => submitUserFeedback({type:"like", cId:item?.cId, payload:null})}>Like</button>
+                                        <div>
+                                            <label htmlFor="rating">Rating:</label>
+                                            <input
+                                                id="rating"
+                                                type="number"
+                                                min="1"
+                                                max="5"
+                                                placeholder="Enter rating (1-5)"
+                                            />
+                                        </div>
+                                        
                                         <button onClick={() => 
                                             setShowDislikeMenu(true)
                                             }>Dislike</button>

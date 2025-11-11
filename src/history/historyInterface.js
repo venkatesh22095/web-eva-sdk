@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import _, { cloneDeep } from "lodash";
 import { bookMarkChatThread, deleteHistory, getBookMarkedChatThreads, updateHistory } from "../redux/actions/global.action";
 import { setAllHistory, setBookMarkedChatThreads } from "../redux/globalSlice";
 import store from "../redux/store";
@@ -15,7 +15,10 @@ const HistoryInterface = (props) => {
             state = store.getState().global;
             // If callback exists and API call is completed, invoke it
             if (state.historyRes.status !== 'loading' && callback) {
-                callback(state.AllHistory, state.historyRes, state.bookMarkedChatThreads);
+                /*sort history by createdOn in descending order using lodash*/
+                let _history = cloneDeep(state.AllHistory)
+                _history.data = _.orderBy(_history.data, 'createdOn', 'desc')
+                callback(_history, state.historyRes, state.bookMarkedChatThreads);
             }
         });
 
@@ -120,13 +123,25 @@ const HistoryInterface = (props) => {
         }
     }
 
+    const updateHistoryBoardNameonSocketEvent = async (arg) => {
+        let _history = cloneDeep(state?.AllHistory)
+        _history.data = _history?.data?.map(historyItem => {
+            if (historyItem?.id === arg?.id) {
+                historyItem = { ...historyItem, name: arg?.name }
+            }
+            return historyItem
+        })
+        store.dispatch(setAllHistory(_history))
+    }
+
     return {
         subscribe,
         deleteHistoryBoard,
         updateHistoryBoardName,
         fetchBookMarkedChatThread,
         loadMoreBookMarkedChatThreads,
-        bookMarkChatThreadItem
+        bookMarkChatThreadItem,
+        updateHistoryBoardNameonSocketEvent
     }
 }
 

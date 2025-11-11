@@ -1,0 +1,19 @@
+sl-tooltip::part(body) {
+    background: #101828;
+    font-size: 0.75rem !important;
+    border-radius: 8px;
+    padding: 4px 6px;
+    font-family: 'Inter';
+    font-weight: 400;
+}
+
+sl-skeleton {
+    &::part(base) {
+        .skeleton__indicator {
+            background: #f8f7f7 !important;
+        }
+        &::part(indicator) {
+            background: #f8f7f7 !important;
+        }
+    }
+}

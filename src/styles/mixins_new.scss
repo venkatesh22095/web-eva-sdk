@@ -1,0 +1,305 @@
+@use "sass:math";
+@import "./variables_new.scss";
+
+@mixin typography-regular($fontSize: 1rem, $fontWeight: 400, $lineHeight: 1.1875rem) {
+	font-family: Inter;
+	font-size: $fontSize;
+	font-style: normal;
+	font-weight: $fontWeight;
+	line-height: $lineHeight;
+	letter-spacing: 0em;
+}
+
+@mixin ellipsisText {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+@mixin ellipsisForNextLine($clamp: 2) {
+	display: inline;
+	-webkit-line-clamp: $clamp;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	word-wrap: break-word;
+	/* Important for long words! */
+}
+
+@mixin scrollbar {
+	scrollbar-color: #E5E5E5 transparent;
+	
+
+	&::-webkit-scrollbar {
+		width: 0.5rem;
+		height: 0.375rem;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background-color: transparent;
+		border-radius: 0.625rem;
+		opacity: 0;
+	}
+
+	&:hover {
+		&::-webkit-scrollbar-thumb {
+			background-color: #737373;
+			opacity: 1;
+		}
+	}
+}
+
+@mixin toggleSwitch( $width: 40px, $height:20px, $toggler: 12px) {
+    .p-inputswitch {
+      width: #{$width};
+      height: #{$height};
+      .p-inputswitch-slider {
+        // background-color: var(--preview-bg-color);
+        // border: 1px solid var(--preview-input-border-color);
+        background-color: $wa-gray-200;
+        border: 1px solid $wa-gray-200;
+  
+        &:before {
+          background-color: $wa-base-white;
+          height: $toggler;
+          width: $toggler;
+          // bottom: 3px;
+          top: 50%;
+          transform: translateY(-50%);
+          margin-top: 0;
+        }
+      }
+      &.p-inputswitch-checked {
+        .p-inputswitch-slider{
+          background-color: var(--Gray-600, #475467) !important;
+          border: 1px solid var(--Gray-600, #475467);
+          &:before {
+            background-color: var(--preview-bg-color);
+            top: 50%;
+            transform: translate($height - 6px, -50%);
+            @media (min-width:1800px) {
+                & {
+                    transform: translate($height - 8px, -50%);
+                }
+            }
+          }
+        }
+      }
+      &:not(.p-disabled){
+        &:hover{
+          .p-inputswitch-slider{
+              //background-color: var(--default-white);
+          }
+        }
+      }
+      &.p-inputswitch-focus {
+        .p-inputswitch-slider {
+          box-shadow: none;
+        }
+      }
+      &.p-focus{
+        .p-inputswitch-slider{
+          box-shadow: none;
+        }
+      }
+    }
+  }
+
+// usage: @include krflexContainer($items: value, $content: value);
+@mixin krflexContainer($items: null, $content: null, $direction: null) {
+	display: -webkit-box;
+	display: -moz-box;
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;
+	-webkit-box-align: #{$items};
+	-moz-box-align: #{$items};
+	-ms-flex-align: #{$items};
+	align-items: #{$items};
+	-webkit-box-pack: #{$content};
+	-moz-box-pack: #{$content};
+	-ms-flex-pack: #{$content};
+	justify-content: #{$content};
+	-webkit-flex-direction: #{$direction};
+	-ms-flex-direction: #{$direction};
+	flex-direction: #{$direction};
+}
+
+@mixin gr-icon($bounds: 1rem, $iconSize: 0.625rem, $radius: 6.25rem) {
+	width: $bounds;
+	height: $bounds;
+	border-radius: $radius;
+	font-size: $iconSize;
+	cursor: pointer;
+	@include krflexContainer($items: center, $content: center);
+}
+
+@mixin krFadeOut {
+	visibility: hidden;
+	opacity: 0;
+	transition: visibility 0s linear 125ms, opacity 125ms;
+}
+
+@mixin krFadeIn($delay: "750ms") {
+	visibility: visible;
+	opacity: 1;
+	transition: visibility 0s linear 0s, opacity 125ms;
+	transition-delay: #{$delay};
+}
+
+@mixin dropdown {
+	.p-dropdown {
+		color: var(--primary-font-color);
+		border: 0.0625rem solid var(--input-default-border-color);
+		margin: 0rem 0.25rem;
+		border-radius: 0.25rem;
+
+		&:focus {
+			box-shadow: none;
+		}
+
+		&:hover {
+			border: 0.0625rem solid var(--input-hover-border-color);
+		}
+
+		&:not(.p-disabled) {
+			&.p-focus {
+				box-shadow: none !important;
+				-webkit-box-shadow: none !important;
+				border: 0.0625rem solid var(--input-default-border-color);
+			}
+		}
+
+		&.p-inputwrapper-focus {
+			border: 0.0625rem solid $wa-primary-300 !important;
+		}
+
+		.p-dropdown-trigger {
+			.p-dropdown-trigger-icon {
+				font-size: 0.625rem;
+				color: var(--primary-font-color);
+			}
+		}
+
+		.p-dropdown-panel {
+			// border-radius: 0.25rem;
+			border: none !important;
+			width: max-content;
+			overflow: hidden;
+			// box-shadow: 0rem 0.25rem 0.25rem rgba(32, 33, 36, 0.2), 0rem 0.0625rem 0.125rem rgba(32, 33, 36, 0.1) !important;
+			// -webkit-box-shadow: 0rem 0.25rem 0.25rem rgba(32, 33, 36, 0.2), 0rem 0.0625rem 0.125rem rgba(32, 33, 36, 0.1) !important;
+
+			&:hover {
+				.p-dropdown-items-wrapper {
+					@include scrollbar();
+					overflow: auto !important;
+				}
+			}
+
+			.p-dropdown-items-wrapper {
+				width: 100% !important;
+
+				// padding: 0.125rem;
+				// overflow: hidden;
+				.p-dropdown-items {
+					.p-dropdown-item {
+
+						// border-radius: 0.125rem;
+						&:not(.p-highlight) {
+							&:not(.p-disabled) {
+								&:hover {
+									background: var(--main-hover-bg-color);
+								}
+							}
+						}
+
+						&.p-highlight {
+							color: inherit;
+							background: var(--default-white);
+						}
+
+						&:hover {
+							background-color: var(--main-hover-bg-color);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+// usage : @include screen-mobile {...}
+@mixin screen-mobile {
+	@media only screen and (max-width: 47.9375rem) {
+		@content;
+	}
+}
+
+@mixin placeholder {
+    &::-webkit-input-placeholder {@content}
+    &:-moz-placeholder           {@content}
+    &::-moz-placeholder          {@content}
+    &:-ms-input-placeholder      {@content}  
+}
+
+@mixin raidioButton($width, $height, $circleSize) {
+    .p-radiobutton {
+        &.p-component {
+            width: #{$width};
+            height: #{$height}; 
+            min-width: #{$width};
+            min-height: #{$height};
+            position: relative;
+            align-items: center;
+            box-shadow: none !important;
+        }
+        .p-radiobutton-box {
+            border: 1px solid var(--colors-border-border-primary, #D0D5DD);
+            width: #{$width};
+            height: #{$height}; 
+            min-width: #{$width};
+            min-height: #{$height};
+        }
+        .p-radiobutton-box {
+            width: #{$width};
+            height: #{$height}; 
+            min-width: #{$width};
+            min-height: #{$height};
+            &:not(.p-disabled).p-focus {
+                box-shadow: none !important;
+                border-color: $wa-gray-900;
+            }
+            &.p-highlight {
+                background: $wa-gray-900;
+                border-color: $wa-gray-900;
+                &:not(.p-disabled):hover {
+                    background: $wa-gray-900;
+                    border-color: $wa-gray-900;
+                }                
+            }
+            .p-radiobutton-icon {
+                width: #{$circleSize};
+                height: #{$circleSize};
+                min-width: #{$circleSize};
+                min-height: #{$circleSize};
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                margin: auto;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                transform: none;
+                background-color: $wa-base-white;
+            }
+        }
+    }
+}

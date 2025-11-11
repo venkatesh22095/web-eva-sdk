@@ -1,0 +1,191 @@
+// Main SDK styles entry point
+// This file imports all necessary CSS and SCSS files for the SDK
+
+// External CSS libraries
+@import "choices.js/public/assets/styles/choices.css";
+
+// Internal CSS files
+@import "./input-text.css";
+@import "./buttons.css";
+@import "./dropdown.css";
+
+// SCSS files - these will be processed by Sass
+@import "./chat-interface.scss";
+@import "./composebar.scss";
+@import "./tooltip.scss";
+@import "./home.scss";
+
+/* @import './quill-editor.css'; */
+
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap'); */
+
+/* @font-face {
+  font-family: 'Inter';
+  src: url('../../public/fonts/Inter-Italic.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../../public/fonts/Inter-Roman.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+} */
+
+/* Common variables - can be used across all components */
+:root {
+  /* Typography */
+  --sdk-font-family: "Inter", -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  /* Colors */
+  --sdk-primary-color: #2970FF;
+  --sdk-background-color: #ffffff;
+  --sdk-text-color: #141414;
+  --sdk-border-color: #E5E5E5;
+  
+  /* Spacing */
+  --sdk-spacing-xs: 0.25rem;
+  --sdk-spacing-sm: 0.5rem;
+  --sdk-spacing-md: 1rem;
+  --sdk-spacing-lg: 1.5rem;
+  --sdk-spacing-xl: 2rem;
+  
+  /* Border radius */
+  --sdk-border-radius-sm: 0.25rem;
+  --sdk-border-radius-md: 0.5rem;
+  --sdk-border-radius-lg: 0.75rem;
+  
+  /* Shadows */
+  --sdk-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --sdk-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --sdk-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Tooltip arrow size*/
+  --sl-tooltip-arrow-size: 0;
+}
+
+/* Base styles */
+.eva-sdk {
+  font-family: var(--sdk-font-family);
+  color: var(--sdk-text-color);
+  
+  * {
+    box-sizing: border-box;
+  }
+  
+  /* Reset some common elements */
+  ul, ol {
+    padding-left: 1.5rem;
+  }
+  
+  button {
+    font-family: inherit;
+  }
+  
+  input, textarea, select {
+    font-family: inherit;
+  }
+}
+
+/* Utility classes */
+.eva-sdk-hidden {
+  display: none !important;
+}
+
+.eva-sdk-visible {
+  display: block !important;
+}
+
+.eva-sdk-flex {
+  display: flex !important;
+}
+
+.eva-sdk-flex-center {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .eva-sdk-mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .eva-sdk-desktop-hidden {
+    display: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .eva-sdk-no-print {
+    display: none !important;
+  }
+}
+
+
+@font-face {
+  font-family: 'Inter';
+  src: url("./fonts/Inter-Variable.eot?v=3.13"), 
+      url("./fonts/Inter-Variable.woff2?v=3.13") format("woff2"),
+      url("./fonts/Inter-Variable.woff?v=3.13") format("woff");
+  /* src: url('/fonts/InterVariable.woff2') format('woff2-variations'); */
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+html, body {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-family: "Inter" !important;
+    font-size: 16px;
+    height: 100%;
+    //overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-x: contain;
+    text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    line-height: 1.5 !important;
+    font-optical-sizing: auto;
+    min-width: 56.25rem;
+    @include scrollbar;
+
+    @media (min-width: 1020px) {
+        font-size: 12px;
+    }
+    @media (min-width: 1024px) {
+        font-size: 13px;
+    }
+    @media (min-width: 1280px) {
+        font-size: 14px;
+    }
+    @media (min-width: 1366px) {
+        font-size: 15px;
+    }
+    @media (min-width: 1400px) {
+        font-size: 16px;
+    }
+    @media (min-width: 1530px) {
+        font-size: 17px;
+    }
+    @media (min-width: 1900px) {
+        font-size: 18px;
+    }
+    @media (min-width: 3840px) {
+        font-size: 20px;
+    }
+    @media (min-width: 7680px) {
+        font-size: 22px;
+    }
+}
+
+*, :after, :before {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}

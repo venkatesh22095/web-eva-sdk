@@ -1,0 +1,446 @@
+/* QuillEditor Plugin Styles for EVA Web SDK */
+
+.eva-quill-editor {
+  border: .0625rem solid #e0e0e0;
+  border-radius: .25rem;
+  background-color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  position: relative; /* Ensure it can contain absolutely positioned dropdowns */
+  overflow: visible; /* Allow dropdown to show outside editor bounds */
+}
+
+/* Variable highlighting for {{}} wrapped text */
+.eva-quill-editor .variable-highlight {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  font-weight: bold !important;
+  padding: .125rem .25rem !important;
+  border-radius: .1875rem !important;
+  font-family: 'Courier New', monospace !important;
+  display: inline-block !important;
+  border: .0625rem solid #bbdefb !important;
+  margin: 0 .0625rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.eva-quill-editor .variable-highlight:hover {
+  background-color: #bbdefb !important;
+  border-color: #90caf9 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Dark theme support for variable highlighting */
+.eva-quill-editor.dark-theme .variable-highlight {
+  background-color: #1e3a8a !important;
+  color: #93c5fd !important;
+  border-color: #3b82f6 !important;
+}
+
+.eva-quill-editor.dark-theme .variable-highlight:hover {
+  background-color: #3b82f6 !important;
+  border-color: #60a5fa !important;
+}
+
+/* Variable dropdown styles */
+.variable-dropdown {
+  position: absolute;
+  background: white;
+  border: .0625rem solid #d1d5db;
+  border-radius: .375rem;
+  box-shadow: 0 .625rem 1.5625rem -0.3125rem rgba(0, 0, 0, 0.25), 0 .625rem .625rem -0.3125rem rgba(0, 0, 0, 0.04);
+  z-index: 9999 !important;
+  max-height: 12.5rem;
+  overflow-y: auto;
+  min-width: 10rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: .8125rem;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: all 0.2s ease-out;
+}
+
+.variable-dropdown .dropdown-item {
+  padding: .625rem .875rem;
+  cursor: pointer;
+  border-bottom: .0625rem solid #f3f4f6;
+  transition: all 0.2s ease;
+  color: #374151;
+  display: flex;
+  align-items: center;
+}
+
+.variable-dropdown .dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.variable-dropdown .dropdown-item:hover {
+  background-color: #f9fafb !important;
+  color: #1976d2 !important;
+  transform: translateX(.125rem);
+}
+
+.variable-dropdown .dropdown-item:active {
+  background-color: #e3f2fd !important;
+  color: #1565c0 !important;
+}
+
+/* Scrollbar styling for dropdown */
+.variable-dropdown::-webkit-scrollbar {
+  width: .375rem;
+}
+
+.variable-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: .1875rem;
+}
+
+.variable-dropdown::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: .1875rem;
+}
+
+.variable-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Dark theme dropdown */
+@media (prefers-color-scheme: dark) {
+  .variable-dropdown {
+    background: #374151;
+    border-color: #4b5563;
+  }
+
+  .variable-dropdown .dropdown-item {
+    color: #f3f4f6;
+    border-bottom-color: #4b5563;
+  }
+
+  .variable-dropdown .dropdown-item:hover {
+    background-color: #4b5563 !important;
+    color: #93c5fd !important;
+  }
+
+  .variable-dropdown .dropdown-item:active {
+    background-color: #1e3a8a !important;
+  }
+}
+
+.eva-quill-editor .ql-toolbar {
+  border-bottom: .0625rem solid #e0e0e0;
+  background-color: #f8f9fa;
+  padding: .5rem;
+  border-radius: .25rem .25rem 0 0;
+}
+
+.eva-quill-editor .ql-container {
+  border: none;
+  font-size: .875rem;
+  line-height: 1.5;
+  min-height: 6.25rem;
+  border-radius: 0 0 .25rem .25rem;
+}
+
+.eva-quill-editor .ql-editor {
+  padding: .75rem;
+  min-height: 6.25rem;
+  max-height: 25rem;
+  overflow-y: auto;
+}
+
+.eva-quill-editor .ql-editor.ql-blank::before {
+  color: #999;
+  font-style: italic;
+  left: .75rem;
+  right: .75rem;
+}
+
+/* Toolbar button styles */
+.eva-quill-editor .ql-toolbar .ql-formats {
+  margin-right: .5rem;
+}
+
+.eva-quill-editor .ql-toolbar button {
+  border: none;
+  background: none;
+  border-radius: .125rem;
+  padding: .25rem .375rem;
+  margin: 0 .0625rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.eva-quill-editor .ql-toolbar button:hover {
+  background-color: #e9ecef;
+}
+
+.eva-quill-editor .ql-toolbar button.ql-active {
+  background-color: #007bff;
+  color: white;
+}
+
+.eva-quill-editor .ql-toolbar .ql-picker {
+  color: #495057;
+}
+
+.eva-quill-editor .ql-toolbar .ql-picker-options {
+  background-color: white;
+  border: .0625rem solid #e0e0e0;
+  border-radius: .25rem;
+  box-shadow: 0 .125rem .5rem rgba(0, 0, 0, 0.1);
+}
+
+.eva-quill-editor .ql-toolbar .ql-picker-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Focus state */
+.eva-quill-editor:focus-within {
+  border-color: #007bff;
+  box-shadow: 0 0 0 .125rem rgba(0, 123, 255, 0.25);
+}
+
+/* Disabled state */
+.eva-quill-editor.ql-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.eva-quill-editor.ql-disabled .ql-toolbar {
+  background-color: #f5f5f5;
+}
+
+.eva-quill-editor.ql-disabled .ql-container {
+  background-color: #f5f5f5;
+}
+
+/* Error state */
+.eva-quill-editor.error {
+  border-color: #dc3545;
+}
+
+.eva-quill-editor.error:focus-within {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 .125rem rgba(220, 53, 69, 0.25);
+}
+
+/* Success state */
+.eva-quill-editor.success {
+  border-color: #28a745;
+}
+
+.eva-quill-editor.success:focus-within {
+  border-color: #28a745;
+  box-shadow: 0 0 0 .125rem rgba(40, 167, 69, 0.25);
+}
+
+/* Compact mode */
+.eva-quill-editor.compact {
+  border-radius: .125rem;
+}
+
+.eva-quill-editor.compact .ql-toolbar {
+  padding: .25rem;
+}
+
+.eva-quill-editor.compact .ql-container {
+  min-height: 3.75rem;
+}
+
+.eva-quill-editor.compact .ql-editor {
+  padding: .5rem;
+  min-height: 3.75rem;
+}
+
+/* Dark theme */
+.eva-quill-editor.dark-theme {
+  border-color: #495057;
+  background-color: #343a40;
+  color: #ffffff;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar {
+  background-color: #495057;
+  border-bottom-color: #6c757d;
+}
+
+.eva-quill-editor.dark-theme .ql-container {
+  background-color: #343a40;
+  color: #ffffff;
+}
+
+.eva-quill-editor.dark-theme .ql-editor.ql-blank::before {
+  color: #adb5bd;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar button {
+  color: #ffffff;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar button:hover {
+  background-color: #6c757d;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar button.ql-active {
+  background-color: #007bff;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar .ql-picker {
+  color: #ffffff;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar .ql-picker-options {
+  background-color: #495057;
+  border-color: #6c757d;
+}
+
+.eva-quill-editor.dark-theme .ql-toolbar .ql-picker-item:hover {
+  background-color: #6c757d;
+}
+
+/* Responsive design */
+@media (max-width: 48rem) {
+  .eva-quill-editor .ql-toolbar {
+    padding: .25rem;
+  }
+  
+  .eva-quill-editor .ql-toolbar .ql-formats {
+    margin-right: .25rem;
+  }
+  
+  .eva-quill-editor .ql-toolbar button {
+    padding: .1875rem .25rem;
+    margin: 0;
+  }
+  
+  .eva-quill-editor .ql-editor {
+    padding: .5rem;
+    font-size: 1rem; /* Prevent zoom on iOS */
+  }
+}
+
+/* Custom scrollbar for editor content */
+.eva-quill-editor .ql-editor::-webkit-scrollbar {
+  width: .375rem;
+}
+
+.eva-quill-editor .ql-editor::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: .1875rem;
+}
+
+.eva-quill-editor .ql-editor::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: .1875rem;
+}
+
+.eva-quill-editor .ql-editor::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animation for toolbar buttons */
+.eva-quill-editor .ql-toolbar button {
+  position: relative;
+  overflow: hidden;
+}
+
+.eva-quill-editor .ql-toolbar button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.eva-quill-editor .ql-toolbar button:active::after {
+  width: 6.25rem;
+  height: 6.25rem;
+}
+
+/* Loading state */
+.eva-quill-editor.loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.eva-quill-editor.loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eva-quill-editor.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: .125rem solid #007bff;
+  border-top: .125rem solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Utility classes */
+.eva-quill-editor-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.eva-quill-editor-label {
+  display: block;
+  margin-bottom: .25rem;
+  font-weight: 500;
+  color: #495057;
+  font-size: .875rem;
+}
+
+.eva-quill-editor-help {
+  margin-top: .25rem;
+  font-size: .75rem;
+  color: #6c757d;
+}
+
+.eva-quill-editor-error {
+  margin-top: .25rem;
+  font-size: .75rem;
+  color: #dc3545;
+}
+
+.eva-quill-editor-success {
+  margin-top: .25rem;
+  font-size: .75rem;
+  color: #28a745;
+}
+
+.eva-quill-editor-character-count {
+  position: absolute;
+  bottom: .25rem;
+  right: .5rem;
+  font-size: .6875rem;
+  color: #6c757d;
+  background: rgba(255, 255, 255, 0.9);
+  padding: .125rem .25rem;
+  border-radius: .125rem;
+} 

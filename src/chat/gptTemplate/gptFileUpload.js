@@ -73,6 +73,19 @@ const uploadFileInitial = (file, id, questionId, resolve, reject) => {
     obj.extName = getFileExtension(u?.file?.name)
     obj.size = u?.file?.size
 
+    /*updating the GptUploadedFiles state, to add loading state of the currently uploading file*/
+
+    let uploadedFiles = cloneDeep(state.GptUploadedFiles || {});
+    if (isEmpty(uploadedFiles) || !Array.isArray(uploadedFiles[id])) {
+        uploadedFiles[id] = []
+    }
+    uploadedFiles[id].push(({
+        ...obj,
+        type: "file",
+        title: file?.title || file?.name        
+    }))    
+    store.dispatch(setGptUploadedFiles(uploadedFiles));
+
     let _questions = cloneDeep(store.getState().global.questions) || {}
     let currentQuestion = cloneDeep(_questions[questionId]);
     currentQuestion.loadingFiles = currentQuestion?.loadingFiles || [];
@@ -99,14 +112,24 @@ const uploadFileInitial = (file, id, questionId, resolve, reject) => {
                 currentFileData[id] = [];
             }
 
-            currentFileData[id].push({
+            /*as we are already pushing the file to the GptUploadedFiles state, we need to update the existing file with the response*/
+
+            // currentFileData[id].push({
+            //     ...obj,
+            //     type: "file",
+            //     value: file?.fileUrl?.fileId,
+            //     title: file?.title || file?.fileName,
+            //     fileId:file?.fileUrl?.fileId,
+            //     loading: false                
+            // });       
+            currentFileData[id] = currentFileData[id].map(f => f?.mediaName === file?.mediaName ? {                
                 ...obj,
                 type: "file",
                 value: file?.fileUrl?.fileId,
                 title: file?.title || file?.fileName,
-                fileId:file?.fileUrl?.fileId,
-                loading: false                
-            });            
+                fileId: file?.fileUrl?.fileId,
+                loading: false                 
+            } : f);
 
             gptFileData = currentFileData;
             store.dispatch(setGptUploadedFiles(currentFileData))
@@ -114,7 +137,7 @@ const uploadFileInitial = (file, id, questionId, resolve, reject) => {
             let _questions = cloneDeep(store.getState().global.questions) || {}
             let currentQuestion = cloneDeep(_questions[questionId]);
             currentQuestion.filesUploaded = currentQuestion?.filesUploaded + 1 || 1;
-            if(currentQuestion?.loadingFiles?.includes(id)){
+            if(currentQuestion?.loadingFiles?.includes(id) && currentQuestion?.loadingFiles?.length > 0){
                 currentQuestion.loadingFiles = currentQuestion?.loadingFiles?.filter(file => file !== id);
             }
             _questions[questionId] = currentQuestion;
@@ -135,7 +158,8 @@ const uploadFileInitial = (file, id, questionId, resolve, reject) => {
             uploadedFiles[id].push(({
                 ...obj,
                 type: "file",                
-                title: file?.title || file?.name,                 
+                title: file?.title || file?.name,  
+                loading: false,               
                 error:msg               
             }))
             // delete uploadedFiles[id];

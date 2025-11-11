@@ -65,16 +65,34 @@ const GptSubmitAction = (event, question) => {
     let singlePrompt = question?.content?.formFields?.inputFields?.find(field => field.key === "prompt")
     let multiPrompt = question?.content?.formFields?.inputFields?.find(field => field.key === "prompts")
     if (singlePrompt) {
-        const promptValue = document.getElementById(`inputValue-${singlePrompt?.key}`)
-        formData.prompt = promptValue.value
+        const promptContainer = document.getElementById(`inputValue-${singlePrompt?.key}`)
+        let promptValue = "";
+        
+        // Check if it's a Quill editor or regular textarea
+        if (promptContainer && promptContainer.quillEditor) {
+            promptValue = promptContainer.quillEditor.getText();
+        } else if (promptContainer && promptContainer.value !== undefined) {
+            promptValue = promptContainer.value;
+        }
+        
+        formData.prompt = promptValue;
         if(state?.enableDebugging){
-            console.log(`Form field is ${`(inputValue-${singlePrompt?.key})`} and value is {${promptValue.value}}`)
+            console.log(`Form field is ${`(inputValue-${singlePrompt?.key})`} and value is {${promptValue}}`)
         }
     } else if (multiPrompt) {
-        const promptValue = document.getElementById(`inputValue-${multiPrompt?.key}`)
-        formData.prompt = promptValue.value
+        const promptContainer = document.getElementById(`inputValue-${multiPrompt?.key}`)
+        let promptValue = "";
+        
+        // Check if it's a Quill editor or regular textarea
+        if (promptContainer && promptContainer.quillEditor) {
+            promptValue = promptContainer.quillEditor.getText();
+        } else if (promptContainer && promptContainer.value !== undefined) {
+            promptValue = promptContainer.value;
+        }
+        
+        formData.prompt = promptValue;
         if(state?.enableDebugging){
-            console.log(`Form field is ${`(inputValue-${multiPrompt?.key})`} and value is {${promptValue.value}}`)
+            console.log(`Form field is ${`(inputValue-${multiPrompt?.key})`} and value is {${promptValue}}`)
         }
     }
 

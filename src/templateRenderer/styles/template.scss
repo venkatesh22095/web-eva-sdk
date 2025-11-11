@@ -36,36 +36,93 @@
             }
         }
         .taskItem {
-            &:hover {
-                .taskItemHeader {
-                    .optionsWrapper {
-                        visibility: visible;
+            position: relative;
+            cursor: grab;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            
+            &[draggable="true"] {
+                &:hover {
+                    .dragHandle {
                         opacity: 1;
+                        visibility: visible;
+                    }
+                    .taskItemHeader {
+                        .optionsWrapper {
+                            visibility: visible;
+                            opacity: 1;
+                        }
                     }
                 }
+                
+                &.dragging {
+                    opacity: 0.5;
+                    transform: rotate(2deg);
+                    cursor: grabbing;
+                    z-index: 1000;
+                }
             }
+            
+            .dragHandle {
+                opacity: 0;
+                visibility: hidden;
+                padding: 0.25rem;
+                cursor: grab;
+                transition: opacity 0.2s ease;
+                margin-top: 0.25rem;
+                flex-shrink: 0;
+                
+                &:hover {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }
+                
+                &:active {
+                    cursor: grabbing;
+                }
+            }
+            
             .taskItemHeader {
+                flex: 1;
+                
                 .optionsWrapper {
                     visibility: hidden;
                     opacity: 0;
+                    transition: all 0.2s ease;
                 }
                 .contentBlock {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: .5rem;
                     .agentIcons {
                         display: flex;
                         align-items: center;
-                        gap: 8px;
+                        gap: .5rem;
                         .agentIcon {
                             display: flex;
                             img {
-                                width: 20px;
-                                height: 20px;
+                                width: 1.25rem;
+                                height: 1.25rem;
                             }
                         }
                     }
                 }
+            }
+        }
+        
+        // Drop indicator styles
+        .drop-indicator {
+            height: 2px;
+            background-color: #3b82f6;
+            border-radius: 1px;
+            margin: 4px 0;
+            transition: all 0.2s ease;
+            opacity: 0;
+            
+            &.visible {
+                opacity: 1;
             }
         }
     }
@@ -79,11 +136,11 @@
                     position: relative;
                     .email-suggestions-dropdown {
                         background: #ffffff;
-                        border: 1px solid #000;
+                        border: .0625rem solid #000;
                         position: absolute;
                         top: 100%;
                         z-index: 2;
-                        max-height: 200px;
+                        max-height: 12.5rem;
                         overflow-y: auto;                      
                     }
                 }
@@ -99,8 +156,8 @@
                 .contextIcon {
                     .srcimg {
                         img {
-                            width: 20px;
-                            max-height: 20px;
+                            width: 1.25rem;
+                            max-height: 1.25rem;
                             object-fit: contain;
                         }
                     }
@@ -112,10 +169,126 @@
 
 .email-body{
 	.email-body-container{
-		min-height: 100px;
+		min-height: 6.25rem;
 	}
 }
 
 .fileUploadLabel {
     cursor: pointer;
+}
+
+// Thoughts toggle functionality
+.thought-wrapper {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    cursor: pointer;
+    padding-top: .5rem;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    .thought-loader-wrapper {
+        .thought-loader {
+            .dot-flashing {
+                margin-left: 1rem;
+            }
+        }
+    }
+
+    .query-response-flow-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    &:hover {
+        .thoughts-header {
+            color: #292929;
+        }
+    }
+    
+    .expand-thoughts-container {
+        overflow: hidden;
+        transition: max-height 0.3s ease, opacity 0.3s ease;
+    }
+    
+    // Collapsed state
+    &.collapsed {
+        .expand-thoughts-container {
+            max-height: 0;
+            opacity: 0;
+            display: none;
+        }
+        
+        .spanIcon,
+        .spanIcon svg,
+        .spanIcon .wa-CheveronRight {
+            transform: rotate(0) !important;
+            //transition: transform 0.3s ease !important;
+        }
+    }
+    
+    // Expanded state  
+    &.expanded {
+        flex-wrap: wrap;
+        .expand-thoughts-container {
+            //max-height: 1000px; // Adjust based on your content height
+            opacity: 1;
+            display: block;
+            width: 100%;
+        }
+        
+        .spanIcon,
+        .spanIcon svg,
+        .spanIcon .wa-CheveronRight {
+            transform: rotate(226deg) !important;
+            //transition: transform 0.3s ease !important;
+        }
+    }
+
+    .thoughts-header {
+        font-family: Inter;
+        font-size: .75rem;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 1.25rem;
+        letter-spacing: 0em;
+        color: #737373;
+    }
+    .spanIcon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .thoughtsContent {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+
+        .thoughts-content-wrapper {
+            display: flex;
+            gap: 1rem;
+
+            .border-line {
+                width: .25rem;
+                border-radius: .75rem;
+                background: #e5e5e5;
+                flex-shrink: 0;
+            }
+
+            .thought-text {
+                font-family: Inter;
+                font-size: .75rem;
+                font-style: normal;
+                font-weight: 500;
+                line-height: 1.125rem;
+                letter-spacing: 0em;
+                color: #737373;
+                position: relative;
+                overflow: hidden;
+            }
+        }
+    }
 }

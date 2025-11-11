@@ -14,12 +14,16 @@ initializeSDK({
     initializeBotSDK:{
         "name": "ProcureBot",
         "streamId": "st-b6012ef2-810d-5240-b33e-5404d68b680e",
-        "webhook": {
+        "webhook": {            
             "clientId": "cs-79a89a6f-b0ab-5e2f-b912-8dd1e2f95da0",
             "clientSecret": "VJNwkfbPcMZl4bOa1Qn3XtYRz6rqigwtTgOlaYX25Xs="
-        }
+        },
     },
-    enableDebugging: false
+    enableDebugging: false,
+    appMetaData: {
+        appName: "AI4Work",
+        appIcon: "https://ai4web.com/wp-content/uploads/2023/01/cropped-cropped-ai4web-logo-1-180x180.png"
+    }
 });
 
 

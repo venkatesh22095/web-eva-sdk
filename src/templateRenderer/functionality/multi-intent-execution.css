@@ -1,0 +1,17 @@
+/* Menu Item Styles for Multi-Intent Execution */
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.menu-item.disabled {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: #f8fafc;
+}

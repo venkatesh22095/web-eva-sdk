@@ -1,0 +1,176 @@
+/* Tom Select Styles */
+.ts-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.ts-control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 2.625rem;
+    padding: .25rem .5rem;
+    border: .0625rem solid #d1d5db;
+    border-radius: .375rem;
+    background: white;
+    cursor: text;
+    transition: border-color 0.2s;
+}
+
+.ts-control:hover {
+    border-color: #9ca3af;
+}
+
+.ts-control.focus {
+    border-color: #2fbef3;
+    box-shadow: 0 0 0 .125rem rgba(47, 190, 243, 0.2);
+}
+
+.ts-control.disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.ts-control input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    min-width: 7.5rem;
+    font-size: .875rem;
+    padding: .25rem 0;
+}
+
+.ts-control input::placeholder {
+    color: #9ca3af;
+}
+
+.ts-item {
+    display: inline-flex;
+    align-items: center;
+    margin: .125rem .25rem .125rem 0;
+    padding: .25rem .5rem;
+    background: #eff6ff;
+    border: .0625rem solid #bfdbfe;
+    border-radius: .25rem;
+    color: #1e40af;
+    font-size: .875rem;
+    font-weight: 500;
+    max-width: 100%;
+}
+
+.ts-item .remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-left: .375rem;
+    background: #dc2626;
+    border-radius: 50%;
+    color: white;
+    font-size: .625rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.ts-item .remove:hover {
+    background: #b91c1c;
+}
+
+.ts-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: .0625rem solid #d1d5db;
+    border-radius: .375rem;
+    box-shadow: 0 .625rem .9375rem -0.1875rem rgba(0, 0, 0, 0.1), 0 .25rem .375rem -0.125rem rgba(0, 0, 0, 0.05);
+    max-height: 12.5rem;
+    overflow-y: auto;
+    margin-top: .125rem;
+}
+
+.ts-dropdown .ts-dropdown-content {
+    padding: .25rem 0;
+}
+
+.ts-dropdown .option {
+    display: block;
+    padding: .5rem .75rem;
+    cursor: pointer;
+    color: #374151;
+    font-size: .875rem;
+    transition: background-color 0.2s;
+}
+
+.ts-dropdown .option:hover {
+    background: #f3f4f6;
+}
+
+.ts-dropdown .option.active {
+    background: #2fbef3;
+    color: white;
+}
+
+.ts-dropdown .option.selected {
+    background: #e5f3ff;
+    color: #1e40af;
+}
+
+.ts-dropdown .no-results {
+    padding: .5rem .75rem;
+    color: #6b7280;
+    font-size: .875rem;
+    text-align: center;
+}
+
+.ts-dropdown .loading {
+    padding: .5rem .75rem;
+    color: #6b7280;
+    font-size: .875rem;
+    text-align: center;
+}
+
+/* Email field specific styles */
+.email-field .ts-wrapper {
+    width: 100%;
+}
+
+.email-field label {
+    display: block;
+    margin-bottom: .375rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Focus improvements */
+.ts-control input:focus {
+    outline: none;
+}
+
+.ts-wrapper.focus .ts-control {
+    border-color: #2fbef3;
+    box-shadow: 0 0 0 .125rem rgba(47, 190, 243, 0.2);
+}
+
+/* Scrollbar styling for dropdown */
+.ts-dropdown::-webkit-scrollbar {
+    width: .375rem;
+}
+
+.ts-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.ts-dropdown::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: .1875rem;
+}
+
+.ts-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+} 

@@ -7,6 +7,8 @@ import { LoadMoreRecentFiles, RecentFiles } from "../files"
 import getBookMarkedChatThreads from "../history/getBookMarkedChatThreads"
 import bookMarkChatThread from "../history/bookMarkChatThread"
 import loadMoreBookMarkedChatThreads from "../history/loadMoreBookMarkedChatThreads"
+import RecentAgentsFunc from "../LandingPageRecentAgents/RecentAgents"
+const {hideRecentAgentsDiv} = RecentAgentsFunc();
 import store from "../redux/store"
 
 const History = (props) => {
@@ -90,6 +92,7 @@ const History = (props) => {
     }
 
     const joinChatHistory = (board) => {
+        hideRecentAgentsDiv('recent-agents-container')
         JoinChatThread({ boardId: board?.id })
     };
 
@@ -106,14 +109,14 @@ const History = (props) => {
     }
 
     return (
-        <div>
-            <h1>History</h1>
-            {/* <button onClick={fetchLoadMoreHistory}>Load more history</button> */}
+        <div className="history-section">
+            {/* <div className="history-heading">History</div> */}
+            
             {/* <button onClick={fetchLoadMoreHistoryInitial}>Initial history data with custom param</button> */}
-            <div>
+            <div className="history-list">
                 {historyData?.data?.length > 0 && historyData?.data?.map(item => {
                     return (
-                        <div className={`historyGrp-${item?.id}`} onClick={()=> joinChatHistory(item)} key={item?.id}>
+                        <div id={`historyGrp-${item?.id}`} className="history-item" onClick={()=> joinChatHistory(item)} key={item?.id}>
                             {/* <button onClick={(e) => { e.preventDefault();  e?.stopPropagation();deleteChatThread(item) }}>Delete</button> */}
                             <span>{item?.name}</span>
                             {/* <button onClick={(e) => { e.preventDefault();  e?.stopPropagation();editNamePopup(item) }}>Edit</button> */}
@@ -121,6 +124,7 @@ const History = (props) => {
                         </div>
                     )
                 })}
+                <div className="history-loadmore"><button className="loadmore-btn" onClick={fetchLoadMoreHistory}>Load more history</button></div>
             </div>
             {/* <div>
                 <h1>Book Marked Chat Thread</h1>

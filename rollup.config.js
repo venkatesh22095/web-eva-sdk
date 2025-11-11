@@ -10,6 +10,8 @@ import builtins from 'rollup-plugin-node-builtins';
 import globals from 'rollup-plugin-node-globals';
 import alias from '@rollup/plugin-alias';
 import postcss from 'rollup-plugin-postcss';
+import copy from 'rollup-plugin-copy';
+import postcssImport from 'postcss-import';
 
 
 const globals_var = {
@@ -19,7 +21,7 @@ const globals_var = {
   'redux-thunk': 'ReduxThunk',
 };
 
-const createConfig = (input, dir, name) => ({
+const createConfig = (input, dir, name, isMainBuild = false) => ({
   input,
   output: [
     {
@@ -50,8 +52,17 @@ const createConfig = (input, dir, name) => ({
       extensions: ['js', 'jsx']
     }),
     postcss({
-      extract: 'sdk-styles.css', 
+      extract: 'sdk-styles.css',
       minimize: true,
+      use: [
+        ['sass', {
+          includePaths: ['./src/styles'],
+          api: 'modern-compiler'
+        }]
+      ],
+      plugins: [
+        postcssImport()  // This will process @import statements after Sass compilation
+      ],
     }),
     babel({
       babelHelpers: 'bundled',
@@ -67,16 +78,26 @@ const createConfig = (input, dir, name) => ({
         { find: 'util', replacement: './util-polyfill.js' }
       ]
     }),
+    // Only copy static assets for the main build to avoid duplication
+    ...(isMainBuild ? [
+      copy({
+        targets: [
+          { src: 'public/*', dest: 'dist' }
+        ]
+      })
+    ] : []),
     terser()
   ]
 });
 
 export default [
-  createConfig('src/index.jsx', '.', 'EvaUIReact'),
+  createConfig('src/index.jsx', '.', 'EvaUIReact', true), // Main build - copy static assets (includes unified CSS)
   createConfig('src/components/index.js', 'components', 'Components'),
+  createConfig('src/composebar/index.js', 'composebar', 'ComposeBar'),
   createConfig('src/history/index.js', 'history', 'History'),
   createConfig('src/widgets/index.js', 'widgets', 'Widgets'),
   createConfig('src/chat/index.js', 'chat', 'Chat'),
   createConfig('src/agents/index.js', 'agents', 'Agents'),
-  createConfig('src/files/index.js', 'files', 'Files')
+  createConfig('src/files/index.js', 'files', 'Files'),
+  createConfig('src/Announcements/index.js', 'Announcements', 'Announcements')
 ];

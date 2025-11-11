@@ -1,5 +1,6 @@
 import store from "../../redux/store";
 import ConnectionProviderFunc from "../functionality/connection-provider";
+import { PlusIcon } from "../icons-library";
 import eventBus from "../utils/eventbus";
 
 eventBus.on("basicAuth", basicAuthHandler);
@@ -71,24 +72,28 @@ function render(data) {
 	);
 
 	const authText = isMicrosoftOrGoogle
-		? `Please provide the authentication to ${profile?.data?.emailId} so we can proceed with your request.;`
+		? `Please provide the authentication to ${profile?.data?.emailId} so we can proceed with your request.`
 		: `Please complete the ${providerName} authentication so we can proceed with your request.`;
 
 	const html = `
-    <div class="accountBox">
+    <div class="add-connection">
       <div class="mainactwrap">
         <div class="choosenimage">
           <img src="${providerIcon}" alt="" />
-        </div>
-        <div class="choosedtext">${providerName}</div>
+        </div>		      
       </div>
-      <div class="authenticationstatus">
-        <div class="authenticateverify">${authText}</div>
-        <div class="addConnection" id="addConnection-${data?.id}">
-          <div class="acIcon"><svg width="13" height="13" fill="#155EEF"></svg></div>
-          <div class="acText">Add connection</div>
-        </div>
-      </div>
+      <div class="contentAreawrap">
+			<div class="choosedtext">${providerName}</div>
+			<div class="rightside">
+				<div class="authenticationstatus">
+					<div class="authenticateverify">${authText}</div>
+					<div class="addConnection" id="addConnection-${data?.id}">
+					<div class="acIcon">${PlusIcon({ size: 13, color: "#131316" })}</div>
+					<div class="acText">Add connection</div>
+					</div>
+				</div>
+			</div>
+		</div>  
     </div>
   `;
 

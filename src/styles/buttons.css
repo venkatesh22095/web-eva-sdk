@@ -1,0 +1,56 @@
+sl-button.secondary-button::part(base) {
+    height: 28px;
+    padding: 0 0.875rem;
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 1.25rem;
+    color: #344054;
+    background: #fff;
+    border: .0625rem solid #d0d5dd;
+    box-shadow: 0rem .0625rem .125rem rgba(16, 24, 40, .05);
+    border-radius: .75rem;
+}
+
+sl-button.secondary-button::part(base):hover {
+    background: #f9fafb;
+    border-color: #d0d5dd;
+    color: #1d2939;
+    box-shadow: 0rem .0625rem .125rem rgba(16, 24, 40, .05);
+    -webkit-transition: background 250ms cubic-bezier(0.35, 0, 0.5, 1);
+    transition: background 250ms cubic-bezier(0.35, 0, 0.5, 1);
+    will-change: background;
+}
+
+sl-button.primary-button-black::part(base) {
+   height: 28px;
+    padding: 0 0.875rem;
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 1.25rem;
+    color: #fff;
+    background: #101828;
+    border: .0625rem solid #475467;
+    box-shadow: 0rem .0625rem .125rem rgba(16, 24, 40, .05);
+    border-radius: .75rem;
+}
+
+sl-button.primary-button-black::part(base):hover {
+    background: #344054;
+    border-color: #344054;
+    color: #fff;
+    box-shadow: 0rem .0625rem .125rem rgba(16, 24, 40, .05);
+    -webkit-transition: background 250ms cubic-bezier(0.35, 0, 0.5, 1);
+    transition: background 250ms cubic-bezier(0.35, 0, 0.5, 1);
+    will-change: background;
+}
+
+sl-button::part(label) {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

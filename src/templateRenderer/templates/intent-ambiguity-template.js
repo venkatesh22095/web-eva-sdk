@@ -16,6 +16,7 @@ function render(data) {
 	// function createThreadName(ambiguousData, selectedItem, sendIntent, renderIcons, TickMark, isMultipleAmbiguous, data, AddConnection) {
 	const container = document.createElement("div");
 	container.id = `intent-ambiguity-template-${data?._id}`;
+	container.classList.add("intent-ambiguity-template");
 
 	// First thread name div
 	const threadNameDiv1 = document.createElement("div");

@@ -1,0 +1,72 @@
+sl-select::part(combobox) {    
+    padding: .25rem .875rem;
+    border-radius: .5rem;
+    border: .0625rem solid #d6d6d6;
+    background: #fff;
+}
+
+sl-select::part(display-input) {
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.25rem;
+    color: #101828;
+}
+
+sl-select:focus-within::part(combobox) {
+    box-shadow: 0rem 0rem 0rem .25rem #f2f4f7, 0rem .0625rem .125rem 0rem rgba(16, 24, 40, .05);
+}
+
+sl-select::part(expand-icon) {
+    color: #424242;
+    margin: 0;
+}
+
+sl-select::part(listbox) {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding: .5rem;
+    border-radius: .5rem;
+    border: .0625rem solid #f5f5f5;
+    background: #fff;
+    box-shadow: 0rem .75rem 1rem -0.25rem rgba(16, 24, 40, .08), 0rem .25rem .375rem -0.125rem rgba(16, 24, 40, .03);
+}
+
+sl-option::part(base) {
+    display: flex;
+    padding: .25rem 1rem;
+    align-items: center;
+    gap: 0;
+    border-radius: .25rem;
+    background: #fff;
+    cursor: pointer;
+    position: relative;
+}
+
+sl-option:hover::part(base) {
+    background-color: #f5f5f5;
+}
+
+sl-option[aria-selected="true"]::part(base) {
+    background-color: #f5f5f5;
+}
+
+sl-option::part(label) {
+    font-family: Inter;
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: inherit;
+    letter-spacing: 0em;
+    color: #424242;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+sl-option::part(checked-icon) {
+    display: none;
+}

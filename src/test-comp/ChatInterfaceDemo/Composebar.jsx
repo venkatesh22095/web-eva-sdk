@@ -89,25 +89,17 @@ const Composebar = ({
       </div>
 
       <div className="composebar-buttons">
-        <sl-button
-          onClick={() =>
+        <sl-button class="primary-button-black" onClick={() =>
             chatInterface.current.sendMessage(
               input,
               messages?.[messages?.length - 1]
             )
-          }
-        >
-          Send
-        </sl-button>
-        <sl-button onClick={() => NewChat()}>
-          <sl-icon slot="prefix" name="plus"></sl-icon>
+          }>Send</sl-button>
+        <sl-button class="secondary-button" onClick={() => NewChat()}>
+           <sl-icon slot="prefix" name="plus"></sl-icon>
           New
         </sl-button>
-        <sl-button
-          onClick={() => chatInterface.current.cancelMessageReqAction()}
-        >
-          Stop
-        </sl-button>
+        <sl-button class="secondary-button" onClick={() => chatInterface.current.cancelMessageReqAction()}>Stop</sl-button>
       </div>
     </div>
   );

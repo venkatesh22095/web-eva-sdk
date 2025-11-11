@@ -1,0 +1,116 @@
+sl-input {
+    width: 100%;
+}
+
+sl-input::part(form-control) {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    width: 100%;
+}
+
+sl-input::part(form-control-label) {
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.25rem;
+    color: #a3a3a3;
+}
+
+sl-input::part(form-control-input) {
+    width: 100%;
+}
+
+sl-input::part(base) {
+    border-radius: .5rem;
+    border: .0625rem solid #D0D5DD;
+    background: #FFF;
+    box-shadow: 0rem .0625rem .125rem 0rem rgba(16, 24, 40, .05);
+    padding: .625rem .875rem;
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.25rem;
+    color: #44403C;
+}
+
+sl-input::part(input) {
+    padding: 0;
+    height: auto;
+}
+
+sl-input::part(input)::placeholder {
+    color: #A9A29D;
+}
+
+sl-input:focus::part(base) {
+    box-shadow: 0rem 0rem 0rem .25rem #f2f4f7, 0rem .0625rem .125rem 0rem rgba(16, 24, 40, .05);
+    outline: none;
+}
+
+sl-textarea {
+    width: 100%;
+}
+
+sl-textarea::part(textarea) {
+    padding: 0;
+    height: auto;
+}
+
+sl-textarea::part(textarea)::placeholder {
+    color: #A9A29D;
+}
+
+sl-textarea::part(form-control) {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    width: 100%;
+}
+
+sl-textarea::part(form-control-label) {
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.25rem;
+    color: #a3a3a3;
+}
+
+sl-textarea::part(form-control-input) {
+    width: 100%;
+}
+
+sl-textarea::part(base) {
+    border-radius: .5rem;
+    border: .0625rem solid #D0D5DD;
+    background: #FFF;
+    box-shadow: 0rem .0625rem .125rem 0rem rgba(16, 24, 40, .05);
+    padding: .625rem .875rem;
+    font-family: Inter;
+    font-size: .875rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.25rem;
+    color: #44403C;
+}
+
+sl-textarea::part(textarea) {
+    resize: none;
+}
+
+sl-textarea::part(input) {
+    padding: 0;
+    height: auto;
+}
+
+sl-textarea::part(input)::placeholder {
+    color: #A9A29D;
+}
+
+sl-textarea:focus::part(base) {
+    box-shadow: 0rem 0rem 0rem .25rem #f2f4f7, 0rem .0625rem .125rem 0rem rgba(16, 24, 40, .05);
+    outline: none;
+}

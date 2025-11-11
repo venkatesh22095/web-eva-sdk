@@ -18,28 +18,25 @@ import { convertTemplateToHtml } from "../utils/helpers";
 import botConversation from "./templates/bot-conversation";
 import customMarkdownRenderer from "./utils/customMarkdownRenderer";
 import * as itemsAmbiguityTemplate from "./templates/items-ambiguity-template";
+import * as responseQueryFlow from "./templates/response-query-flow";
 import AnsFromChip from "./templates/ansFromChip";
 import DOMPurify from "dompurify";
+import store from "../redux/store";
 
 export function render(
 	data,
-	{ assistantIconTemplate, userIconTemplate, loadingText }
+	{ assistantIconTemplate, userIconTemplate, loadingText, displayTimestamp }
 ) {
 	try {
-		let loading = data?.loading;
-
-		if(data?.botConversation && Object.values(data?.botConversation)[0]?.thoughts?.length > 0){
-			loading = false;
-		}
-
-		if(loading){
-
+		// Handle loading state
+		if (data?.loading && !data?.botConversation && !data?.isTask) {
 			return TemplateComponents.wrapTemplate(
 				TemplateComponents.renderLoading(
 					data,
 					assistantIconTemplate,
 					loadingText,
-					userIconTemplate
+					userIconTemplate = true,
+					displayTimestamp = true
 				),
 				{ type: "loading", id: data.id }
 			);
@@ -49,12 +46,14 @@ export function render(
 		let content = "";
 	
 		if (
-			data?.question &&
-			shouldShowQuestion(data?.templateType, data?.botConversation)
+			data.question &&
+			!data?.isTask &&
+			shouldShowQuestion(data.templateType, data.botConversation)
 		) {
 			content += TemplateComponents.renderQuestionBubble(
 				data,
-				userIconTemplate
+				userIconTemplate = true,
+				displayTimestamp = true
 			);
 		}
 
@@ -71,18 +70,31 @@ export function render(
 					ADD_ATTR: SHOELACE_ATTRS,
 				});
 		} else {
-			content += customMarkdownRenderer(
-				renderTemplateContent(
-					data,
-					assistantIconTemplate,
-					userIconTemplate,
-					loadingText
-				)
+			// content += customMarkdownRenderer(
+			// 	renderTemplateContent(
+			// 		data,
+			// 		assistantIconTemplate,
+			// 		userIconTemplate,
+			// 		loadingText
+			// 	)
+			// );
+			let html = renderTemplateContent(
+				data,
+				assistantIconTemplate,
+				userIconTemplate,
+				loadingText
 			);
+			content += DOMPurify.sanitize(html, {
+				ADD_TAGS: SHOELACE_TAGS,
+				ADD_ATTR: SHOELACE_ATTRS,
+			});
 		}
-		if (!!data?.sources?.length && data?.templateType === "search_answer") {
+		if (!!data?.sources?.length && data?.templateType === "search_answer" && data?.status === "completed") {
 			let chip = AnsFromChip({ item: data });
-			content += chip;
+			content += DOMPurify.sanitize(chip, {
+				ADD_TAGS: SHOELACE_TAGS,
+				ADD_ATTR: SHOELACE_ATTRS,
+			});
 		}
 		let ele = TemplateComponents?.wrapTemplate(content, {
 			type: data?.templateType,
@@ -93,7 +105,7 @@ export function render(
 	} catch (error) {
 		return genericErrorTemplate.render({
 			error: {
-				message: "Something went wrong, please try again later",
+				message: `Failed to render message: ${error}`,
 				code: "RENDER_ERROR",
 			},
 		});
@@ -105,10 +117,13 @@ export function renderTemplateContent(
 	assistantIconTemplate,
 	userIconTemplate,
 	loadingText
-) {
+) {	
+	const appMetaData = store.getState().global.appMetaData;
 	let htmlTemplate = "";
+	htmlTemplate = responseQueryFlow.render(data);
+	// htmlTemplate += TemplateComponents.renderAppAvatar(appMetaData?.appName, appMetaData?.appIcon, data.timestamp);
 	if (data.viewType === "threadView" || data.botConversation) {
-		htmlTemplate = botConversation.render(
+		htmlTemplate += botConversation.render(
 			data,
 			assistantIconTemplate,
 			userIconTemplate,
@@ -118,47 +133,43 @@ export function renderTemplateContent(
 					<div class="answerCntr">${htmlTemplate}</div>
 				</div>`;
 	} else if (data?.status === "terminated") {
-		return `<div class="message-bubble answer"> 
+		return htmlTemplate += `<div class="message-bubble answer"> 
 					I see you interrupted the answer generation. Please feel free to provide more details or let me know how can I assist you further
 				</div>`;
-	} else if (data?.error) {
-		htmlTemplate = `<div class="message-bubble answer"> 
-					We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.
-				</div>`;
-	} else {
+	} else {		
 		switch (data.templateType) {
 			case "resolve_ambiguity":
-				htmlTemplate = ambiguityTemplate.render(data);
+				htmlTemplate += ambiguityTemplate.render(data);
 				break;
 
 			case "intent_ambiguity":
-				htmlTemplate = intentAmbiguityTemplate.render(data);
+				htmlTemplate += intentAmbiguityTemplate.render(data);
 				break;
 
 			case "action_send_email":
-				htmlTemplate = actionSendEmail.render(data);
+				htmlTemplate += actionSendEmail.render(data);
 				break;
 
 			case "integrations_action_form":
-				htmlTemplate = integrationActionTemplate.render(data);
+				htmlTemplate += integrationActionTemplate.render(data);
 				break;
 
 			case "interruption_template":
-				htmlTemplate = interruptionTemplate.render(data);
+				htmlTemplate += interruptionTemplate.render(data);
 				break;
 
 			case "gpt_form_template":
-				htmlTemplate = gptFormTemplate.render(data);
+				htmlTemplate += gptFormTemplate.render(data);
 				break;
 
 			case "action_send_slack_message":
-				htmlTemplate = actionSendSlackMessage.render(data);
+				htmlTemplate += actionSendSlackMessage.render(data);
 				break;
 
 			case "connection_provider":
 			case "admin_config_action":
 			case "error_message":
-				htmlTemplate = connectionProvider.render({
+				htmlTemplate += connectionProvider.render({
 					...data,
 					llm: data.templateType !== "connection_provider",
 					error: data.templateType === "error_message",
@@ -166,7 +177,7 @@ export function renderTemplateContent(
 				break;
 
 			case "agent_welcome_template":
-				htmlTemplate = agentWelcomeTemplate.render(data);
+				htmlTemplate += agentWelcomeTemplate.render(data);
 				break;
 			// case "bot_template":
 			// 	console.log("bottttt", data.template_html);
@@ -175,34 +186,33 @@ export function renderTemplateContent(
 
 			case "search_answer":
 			case "search_results":
-				htmlTemplate = searchAnswer.render(data);
+				htmlTemplate += searchAnswer.render(data);
 				break;
 
 			case "multi_intent_execution":
-				htmlTemplate = multiIntentExecution.render(data);
+				htmlTemplate += multiIntentExecution.render(data);
 				break;
 
 			case "multi_responses":
-				htmlTemplate = multiResponses.render(data);
+				htmlTemplate += multiResponses.render(data);
 				break;
 
 			case "hold_conversation":
-				htmlTemplate = holdConversation.render(data);
+					htmlTemplate += holdConversation.render(data);
 				break;
 			case "items_ambiguity_template":
-				htmlTemplate = itemsAmbiguityTemplate.render(data);
+				htmlTemplate += itemsAmbiguityTemplate.render(data);
+				break;
+			case "error_template":
+				htmlTemplate += errorMessage.render(data, assistantIconTemplate);
 				break;
 			default:
-				if(data.hasOwnProperty("templateType")){
-					htmlTemplate = TemplateComponents.renderAnswerBubble(data);
-					return htmlTemplate;
-				}
-
-				htmlTemplate = `<div class="message-bubble answer"> 
-								We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.
-								</div>`
-				
-				
+				// Handle thread view or conversation
+				// if (data.thread || data.viewType === "threadView") {
+				// 	htmlTemplate = renderBotConversation(data);
+				// }
+				console.warn(`Unknown template type: ${data.templateType}`);
+				// htmlTemplate = TemplateComponents.renderAnswerBubble(data);
 		}
 	}
 	// Add feedback if supported

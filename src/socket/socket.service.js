@@ -2,6 +2,9 @@ import io from "socket.io-client";
 import { ChatInterface } from "../chat";
 import BotConversation from "../chat/botAgent/getBotConversation";
 import Notification from "../notifications/notification";
+import { presenceStart } from "../redux/actions/global.action";
+import store from "../redux/store";
+import { HistoryInterface } from "../history";
 
 class WebSocketClient {
     constructor() {
@@ -19,7 +22,7 @@ class WebSocketClient {
         this.options = {
             transports: ["websocket"],
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: 1000,
             reconnectionDelay: 1000,
             ...options,
         };
@@ -41,12 +44,14 @@ class WebSocketClient {
             this.socket.on("connect", () => {
                 console.info(`Socket connected: ${this.socket.id}`);
             });
-
-            this.socket.on("disconnect", (reason) => {
+            
+            this.socket.on("disconnect", async (reason) => {
+                await store.dispatch(presenceStart())
                 console.warn(`Socket disconnected: ${reason}`);
             });
 
-            this.socket.on("connect_error", (error) => {
+            this.socket.on("connect_error", async (error) => {
+                await store.dispatch(presenceStart())
                 console.error(`Socket connection Error: ${error.message}`);
             });
 
@@ -64,8 +69,18 @@ class WebSocketClient {
                     /*In answer suggestion, will receive thoughts of agents, need to append to the question*/                    
                         ChatInterface().agentThoughts(msg)                                        
                 }
+                if (msg?.entity === "thoughts") {
+                    ChatInterface().agentThoughts(msg)     
+                }
                 if(msg?.entity === "answerChunk"){
                     ChatInterface().contentStreaming(msg)
+                }
+                if (msg?.entity === "boardName") {
+                    /*update the name in the history board */
+                    HistoryInterface().updateHistoryBoardNameonSocketEvent(msg?.data)
+                }
+                if (msg?.entity === 'reqFlow') {
+                    ChatInterface().responseFlowGeneration(msg)
                 }
             });
             this.socket.on("notification", (msg) => {

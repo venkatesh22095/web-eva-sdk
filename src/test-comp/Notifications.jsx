@@ -35,7 +35,7 @@ const Notifications = () => {
                 return (<>
                     <div key={index} onClick={() => NotificationRef.current.redirectToNotificationChatThread(notification)}>
                         <h3>{notification?.message?.title}</h3>
-                        <p>{notification?.message?.body}</p>
+                        {/* <p>{notification?.message?.body}</p> */}
                         <p>{notification?._id}</p>
                         <p>{notification?.isRead ? "Read" : "Unread"}</p>
                     </div>

@@ -22,7 +22,7 @@ export const constructQuestionInitial = (args) => {
 
 	const activeBoardId = store.getState().global.activeBoardId;
 
-	let question = args?.question;
+	let question = args?.question || args?.action?.postback;
 
 	let obj = {};
 
@@ -39,9 +39,9 @@ export const constructQuestionInitial = (args) => {
 			loading: true,
 			type: "search",
 			isTask: true,
-			parentMsgId: args?.reqId,
+            parentMsgId: args?.parentMsgId,
 			cId: args?.stepId,
-			reqId: args?.stepId,
+			reqId: args?.reqId,
 			showResponse: true,
 		}
 
@@ -59,7 +59,7 @@ export const constructQuestionInitial = (args) => {
 			reqId: uniqueMsgId,
 			showResponse: true,
 			isTask: true,
-			parentMsgId: args?.reqId,
+            parentMsgId: args?.parentMsgId,
 			isMultiIntentExecution: true,
 			stepIndex: stepIndex,
 		};
@@ -82,20 +82,20 @@ export const constructQuestionInitial = (args) => {
 	store.dispatch(updateChatData(questions));
 	store.dispatch(setCurrentQuestion(obj));
 
-	if (!activeBoardId) {
-		let arr = store.getState().global?.history?.data?.boards || [];
-		let threadObj = {
-			createdOn: moment().valueOf(),
-			name: "loader",
-			loading: true,
-		};
-		store.dispatch(
-			setAllHistory({
-				...store.getState().global?.AllHistory,
-				data: [threadObj, ...arr],
-			})
-		);
-	}
+	// if (!activeBoardId) {
+	// 	let arr = store.getState().global?.history?.data?.boards || [];
+	// 	let threadObj = {
+	// 		createdOn: moment().valueOf(),
+	// 		name: "loader",
+	// 		loading: true,
+	// 	};
+	// 	store.dispatch(
+	// 		setAllHistory({
+	// 			...store.getState().global?.AllHistory,
+	// 			data: [threadObj, ...arr],
+	// 		})
+	// 	);
+	// }
 
 	return uniqueMsgId;
 };
@@ -104,6 +104,9 @@ export const constructQuestionPostCall = (data, qId) => {
 
     // data.payload = contains api response
     // data.meta.arg = contains passed params and payload
+
+    /*advance Search cancelled, data is coming into the block, so ignoring this by putting return in case of payload is undefined */
+    if(!data?.payload) return;
 
     const state = store.getState().global
     const questions = cloneDeep(state.questions)
@@ -115,7 +118,7 @@ export const constructQuestionPostCall = (data, qId) => {
 
 	if (!activeBoardId) {
 		store.dispatch(
-			fetchHistory({ deleteLoader: true, params: { limit: 10 } })
+			fetchHistory({ deleteLoader: true, params: { limit: 1} })
 		);
 	}
     if(state.enabledCustomTemplates?.[data?.payload?.templateType]) {
@@ -137,7 +140,7 @@ export const constructQuestionPostCall = (data, qId) => {
 		}
 	}
 
-	if (data?.payload?.templateType === chatTemplateTypes.SEARCH_ANSWER) {
+	if (data?.payload?.templateType === chatTemplateTypes.SEARCH_ANSWER || data?.payload?.templateType === chatTemplateTypes.SEARCH_RESULTS) {
 		if (data?.payload?.sources?.length > 0 ){
 			// const ansFromChipData = AnswerFromChip({item: data?.payload });
 			// question.answerFrom_html = ansFromChipData.outerHTML;
@@ -176,7 +179,30 @@ export const constructQuestionPostCall = (data, qId) => {
 					}
 				}
 			}
-		}
+		}else{
+            if(question?.viewType === "threadView"){
+                if(!question?.hasOwnProperty('botConversation')){
+                    question.botConversation = {}
+                    question = {...question, ...data?.payload}
+                }else{                
+                let currentConversation = question?.botConversation?.[data?.payload?.messageId]
+                if(currentConversation){
+                    currentConversation.status = data?.payload?.status
+                    currentConversation.answer = data?.payload?.answer
+                    question.botConversation[data?.payload?.messageId] = currentConversation
+                }
+            }
+                
+            }
+        }
+
+        /*based on question, if its viewType is threadView need to do botConversation update here */
+        
+
+        /*Clearing the selected context when search results are received */
+        if(data?.payload?.context?.enable === false || state?.selectedContext?.type === "agent" || state?.selectedContext?.type === "commonAgent" || state?.selectedContext?.type === "searchAgent"){
+            store.dispatch(setSelectedContext(null))
+        }
 	}
 
     if(data?.payload?.queryExhaustionInfo?.queryLimitExhausted){
@@ -237,8 +263,8 @@ export const constructQuestionPostCall = (data, qId) => {
     // }
 
     if(data?.error) {
-        /*when the api request returns error, need to update the question status accordingly */
-        
+        /*when the api request returns error, need to check whether the question is having threadedView or not and update the status accordingly */
+
         if (question?.viewType === "threadView"){
             /*add error status to the child question present in the botConversation */
             question = addErrorStateToBotConversation(questions?.[qId], data)
@@ -250,7 +276,7 @@ export const constructQuestionPostCall = (data, qId) => {
         questions[qId] = { ...question, apiSuccess: false };
         store.dispatch(updateChatData(questions))
         return;
-
+        
         // question = { ...question, error: data?.error, errInfo: data?.errInfo};
         // if(data?.errInfo?.errors[0]?.code === 'MaximumPointsExceeded'){
         //     _limitExhausted = data?.errInfo?.errors[0]
@@ -258,7 +284,7 @@ export const constructQuestionPostCall = (data, qId) => {
     } else if (data?.meta?.arg?.multiIntentExecution || question?.isMultiIntentExecution) {
 		const stepIndex = question?.stepIndex;
 		question = { ...question, ...data?.payload, showResponse: true};
-		questions[question?.parentMsgId].executingActionId = question?.id
+		questions[question?.parentMsgId].executingActionId = question?.stepId
 		if(stepIndex === 0) {
 		    questions[question?.parentMsgId].status = 'in-progress'
 		}
@@ -275,6 +301,12 @@ export const constructQuestionPostCall = (data, qId) => {
         }
         let terminatedAnswerResponse = "I see you interrupted the answer generation. Please feel free to provide more details or let me know how can I assist you further"
         question = { ...question,  ...data?.payload?.history, answer : terminatedAnswerResponse};
+        if (question?.isTask) {
+            const stepIndex = question?.stepIndex;
+            setTimeout(() => {
+                multiIntentExecutionFunc().runNextTask(stepIndex, data?.payload?.history?.status, question)
+            }, 1000);
+        }
 	} 
     else {      
         if(data?.meta?.arg?.params?.from !== "botAgent") {
@@ -327,9 +359,9 @@ export const constructQuestionPostCall = (data, qId) => {
         // question.question = data?.res?.question
     }
 
-    if(data?.payload?.viewType === "threadView" && (!data?.payload?.hasOwnProperty('thread'))){
-        question = {...question, ...data?.payload}
-    }
+    // if(data?.payload?.viewType === "threadView" && (!data?.payload?.hasOwnProperty('thread'))){
+    //     question = {...question, ...data?.payload}
+    // }
 
     /*cancelrequest / closing the botconversation logic, check for the status as completed and viewType as threadView */
     if(data?.payload?.history?.status === msgStatus.COMPLETED && data?.payload?.history?.viewType === "threadView") {
@@ -337,9 +369,16 @@ export const constructQuestionPostCall = (data, qId) => {
             ...question,
             "status": data?.payload?.history?.status,
             "answer": data?.payload?.history?.answer,
-
+        }
+        /*need to update botConversation question as well, in case of termination */
+        if(question?.hasOwnProperty('botConversation')){
+            if(question?.botConversation?.[data?.meta?.arg?.params?.quesId]){
+                question.botConversation[data?.meta?.arg?.params?.quesId].status = "terminated"
+            }
         }
     }
+
+    store.dispatch(setCurrentQuestion(question))
 
     // if(data?.res?.viewType === "threadView"){
     //     if(!question.hasOwnProperty("botConversation")){
@@ -423,36 +462,18 @@ const removeOutputMessageId = (question, apiResponse) => {
 
     }
 
-    const addErrorStateToBotConversation = (question, resp) =>{
-        const currentQuestion = cloneDeep(question)
-        if(currentQuestion?.botConversation?.[resp?.meta?.arg?.params?.quesId]){
-            currentQuestion.botConversation[resp?.meta?.arg?.params?.quesId].status = "error"
-            currentQuestion.botConversation[resp?.meta?.arg?.params?.quesId].error = resp?.error
-        }
-        /*because of though streaming, we wont be getting the quesId in the params, so saerch for the status 'thoughtStreaming' or 'threadRunning' inside bot conversation and make its status as 'error'*/
-        const isChildQuestionHavingThoughtStreaming = Object.values(currentQuestion?.botConversation)?.find(childQuestion => childQuestion?.status === "thoughtStreaming" || childQuestion?.status === "threadRunning")
-        if(isChildQuestionHavingThoughtStreaming){
-            currentQuestion.botConversation[isChildQuestionHavingThoughtStreaming?.outputMessageId].status = "error"
-            // question.botConversation[isChildQuestionHavingThoughtStreaming?.messageId].error = resp?.error
-        }else{
-            /*if we dont have any run id's check for the question that is in in-progress status */
-        /*if we dont have runId, create a new messageId inside the botConversation and store the error */
-        const errorId = generateShortUUID()
-        currentQuestion.botConversation[errorId] = {
+const addErrorStateToBotConversation = (question, resp) =>{
+    /*the below block is for stop response scenario */
+    if(question?.botConversation?.[resp?.meta?.arg?.params?.quesId]){ 
+        question.botConversation[resp?.meta?.arg?.params?.quesId].status = "error"
+        question.botConversation[resp?.meta?.arg?.params?.quesId].error = resp?.error
+    }else{
+        const randomMessageId = uuid()
+        question.botConversation[randomMessageId] = {
+            messageId: randomMessageId,
             status: "error",
-            error: resp?.error,
-            answer: resp?.meta?.arg?.payload?.question,
-            messageId: errorId,
-            question: resp?.error?.message || resp?.error?.msg || "We’re unable to complete your request right now due to a server timeout or unexpected response. Please refresh or try again later.",
+            error: resp?.error
         }
-
-        
-        /*also make all loading status as false */
-        Object.values(currentQuestion?.botConversation)?.forEach(childQuestion => {
-            if(childQuestion?.loading){
-                delete childQuestion?.loading
-            }
-        })
-        return currentQuestion;
     }
-    }
+    return question;
+}

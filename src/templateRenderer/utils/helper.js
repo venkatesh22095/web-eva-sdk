@@ -1,4 +1,7 @@
+import { cloneDeep } from "lodash";
 import moment from "moment";
+import ChatInterface from "../../chat/ChatInterface";
+import store from "../../redux/store";
 
 function validateInput(templateType, data) {
 	if (!templateType || typeof templateType !== "string") {
@@ -635,6 +638,22 @@ export const SHOELACE_ATTRS = [
   'onslstart',
   'onslend',
 ];
+
+
+export const cancelOngoingCall = (currentTaskId) => {
+	let state = store?.getState()?.global;
+	let { questions} = state;
+	let updatedQuestions = cloneDeep(questions)
+	updatedQuestions[currentTaskId].status = "terminated"
+	updatedQuestions[currentTaskId].loading = false	
+	/* for cancel we should send either messageId / requId, but for multiIntent execution we are constructing question in questions array with stepId, hence pulling the messageId from that stepId and making the cancel call*/
+	if (updatedQuestions[currentTaskId]?.hasOwnProperty("isTask")) {		
+		ChatInterface().cancelMessageReqAction(updatedQuestions[currentTaskId]?.reqId)
+	} else {
+		// dispatch(stopResponse({ id: currentQuestion }, { boardId: selectedThreadId }, value))
+	}
+
+}
 
 // return {
 // 	validateInput,

@@ -1,3 +1,4 @@
+import { MessageRenderer } from "../../plugins/Markdown/message-renderer";
 import { encodeHtml } from "../utils/helper";
 
 function render(data) {
@@ -38,7 +39,7 @@ function renderAnswer(data) {
 
     let html = `
         <div id="answer-${data.id}" class="threadName maxLength">
-            ${data.answer}
+            ${MessageRenderer(data.answer)}
         </div>
     `;
     return html;

@@ -1,6 +1,7 @@
 import { createAsyncThunk  } from "@reduxjs/toolkit";
 import axiosInstance from "../../api/axiosInstance";
 import { handleErrorState } from "../../utils/helpers";
+import { v4 as uuidv4 } from 'uuid';
 
 // Asynchronous actions (thunks)
 export const fetchConfigData = createAsyncThunk(
@@ -31,10 +32,46 @@ export const fetchProfileData = createAsyncThunk(
 
 export const fetchAgents = createAsyncThunk(
     'global/fetchAgents',
-    async (arg, { rejectWithValue }) => {
+    async (arg, { rejectWithValue, dispatch }) => {
         try {
             const response = await axiosInstance.get(`1.1/users/${arg.userId}/agents`, arg?.params);
-            return response.data;
+            const agentsData = response.data;
+
+            //After getting the agents data, we need to get the user details for the createdBy of the agents
+            const createdByIds = [...new Set(
+                agentsData?.agents
+                    ?.filter(agent => agent.createdBy)
+                    ?.map(agent => agent.createdBy)
+            )];
+
+            let userDetailsMap = {};
+            if (createdByIds.length > 0) {
+                try {
+                    //dispatch the getUserDetails action to get the user details for the createdBy of the agents
+                    const userDetailsResult = await dispatch(getUserDetails({
+                        payload: { id: createdByIds }
+                    }));
+
+                    userDetailsMap = userDetailsResult.payload?.reduce((acc, user) => {
+                        acc[user?.id] = user;
+                        return acc;
+                    }, {}) || {};
+                } catch (userError) {
+                    console.warn('Failed to fetch user details for agents:', userError);
+                }
+            }
+
+            const agentsWithUserData = agentsData?.agents?.map(agent => ({
+                ...agent,
+                userDetails: agent?.createdBy ? userDetailsMap[agent?.createdBy] : null,
+            }));
+
+            //return the agents with the user details
+            return {
+                ...agentsData,
+                agents: agentsWithUserData
+            };
+
         } catch (error) {
             handleErrorState(error, "Agents");
             return rejectWithValue(error.response.data);
@@ -48,12 +85,16 @@ export const advanceSearch = createAsyncThunk(
     'global/advanceSearch',
     async (arg, thunkAPI) => {
         controller = new AbortController();
+        const traceId = uuidv4();
         try {            
             const response = await axiosInstance.post(`1.1/kora/users/${arg.userId}/advancedsearch`, arg.payload, {
                 params: arg?.params,
                 signal: controller.signal,
+                headers: {
+                    'kore-traceid': traceId
+                }
             });
-            return response.data;
+            return { ...response.data, 'kore-traceid': traceId};
         } catch (error) {
             handleErrorState(error, "Advance Search");
             return thunkAPI.rejectWithValue(error.response.data);
@@ -419,4 +460,29 @@ export const stopResponseGeneration = createAsyncThunk(
     }
 );
 
+export const getAllAnnouncements = createAsyncThunk(
+    'global/getAllAnnouncements',
+    async (arg, { rejectWithValue }) => {        
+        try {
+            const response = await axiosInstance.get(`/1.1/users/${arg?.params?.userId}/announcements`);
+            return response.data;
+        } catch (error) {
+            handleErrorState(error, "Unable to get Announcements");
+            return rejectWithValue(error?.response?.data);
+        }
+    }
+);
+
+export const getUserDetails = createAsyncThunk(
+    'global/getUserDetails',
+    async (arg, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`/1.1/_resolve/user`, arg?.payload);
+            return response.data;
+        } catch (error) {
+            handleErrorState(error, "Get User Details");
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
 

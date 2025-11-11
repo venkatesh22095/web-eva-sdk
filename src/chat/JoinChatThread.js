@@ -48,7 +48,7 @@ const JoinChatThread = async (props) => {
         let msgId = q?.reqId || uuid();
             let obj = {
                 ...q,
-                id: msgId,
+                // id: msgId,
                 messageId: q?.id,
                 context: {...q?.context, messageId: q?.id},
                 type: q?.postType === "follow-up" ? "followup" : "search",

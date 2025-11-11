@@ -4,7 +4,9 @@ const AgentWelcomeFunc = (item) => {
 	item?.templateInfo?.suggestions?.[0]?.utterances?.forEach(
 		(utterance, i) => {
 			const chipOne = document.getElementById(`awt-${item?.id}-${i}`);
-			chipOne.onclick = () => InvokeGptAgentTemplate({ item, utterance });
+			if (chipOne) {
+				chipOne.onclick = () => InvokeGptAgentTemplate({ item, utterance });
+			}
 		}
 	);
 };

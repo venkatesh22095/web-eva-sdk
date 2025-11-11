@@ -10,7 +10,8 @@ import {
   searchSession,
   submitFeedback,
   presenceStart,
-  getNotification
+  getNotification,
+  getAllAnnouncements
 } from './actions/global.action';
 import { handleAsyncActions } from '../utils/handleAsyncActions';
 import { cloneDeep, concat, isEmpty, orderBy, uniqBy } from 'lodash';
@@ -19,6 +20,7 @@ const initialState = {
   profile: {},
   config: {},
   allAgents: {},
+  commonAgents: {},
   enabledAgents: null,
   recentAgents: null,
   advanceSearchRes: {},
@@ -51,7 +53,9 @@ const initialState = {
   notifications : {},
   bookMarkedChatThreads: [],
   enableDebugging: false,
-  quickActions: []
+  quickActions: [],
+  announcements: {},
+  appMetaData:{}
 };
 
 const globalSlice = createSlice({
@@ -124,6 +128,9 @@ const globalSlice = createSlice({
       setQuickActions: (state, action) => {
         state.quickActions = action.payload;
       },
+      setAppMetaData: (state, action) => {
+        state.appMetaData = action.payload;
+      }
     },
     extraReducers: (builder) => {
       handleAsyncActions(builder, fetchConfigData, 'config', (state, action) => {
@@ -135,6 +142,7 @@ const globalSlice = createSlice({
         let enabledAgents = action.payload.agents.filter(a => !!a?.enabled)
         state.enabledAgents = enabledAgents
         state.recentAgents = action.payload.recents
+        state.commonAgents = action.payload.commonAgents
       });
       handleAsyncActions(builder, advanceSearch, 'advanceSearchRes', (state, action) => {
         /*
@@ -166,8 +174,7 @@ const globalSlice = createSlice({
            state.questions = questions           
          }
          
-       }
-        console.log("state", "action", state, action)
+       }        
       });
       handleAsyncActions(builder, fetchHistory, 'historyRes', (state, action)=> {
         if(action?.meta?.arg?.onload) {
@@ -220,6 +227,9 @@ const globalSlice = createSlice({
         state.questions = questions
       });
       handleAsyncActions(builder, presenceStart, 'presenceStart');
+      handleAsyncActions(builder, getAllAnnouncements, 'announcements', (state, action)=> {
+        state.announcements= action.payload             
+      });
     }
 });
 
@@ -246,7 +256,8 @@ export const {
   setNotifications,
   setBookMarkedChatThreads,
   setEnabledDebugging,
-	setQuickActions
+	setQuickActions,
+	setAppMetaData
 } = globalSlice.actions;
 
 export default globalSlice;

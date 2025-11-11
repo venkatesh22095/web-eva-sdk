@@ -9,6 +9,8 @@ import { cloneDeep, isEmpty } from "lodash";
 import BotConversation from "./botAgent/getBotConversation";
 import { current } from "@reduxjs/toolkit";
 import { sessionItemHandler } from "../Attachments/createContext";
+import RecentAgentsFunc from "../LandingPageRecentAgents/RecentAgents";
+const {hideRecentAgentsDiv} = RecentAgentsFunc();
 
 const ChatInterface = (props) => {
     let state = store.getState().global, input = '', resIndexRef = 0;
@@ -37,9 +39,11 @@ const ChatInterface = (props) => {
         let cancelledQuestion;
         let currentQuestion = state.currentQuestion;
         if(currentQuestion){
-           
-                cancelledQuestion = updatedQuestions?.[currentQuestion?.reqId]
-                       
+                if(currentQuestion?.isTask){
+                  cancelledQuestion = updatedQuestions?.[currentQuestion?.cId]
+                }else{
+                  cancelledQuestion = updatedQuestions?.[currentQuestion?.reqId]
+                }                                      
         }
         else{
             cancelledQuestion = Object.values(updatedQuestions)?.find((ques) => ques?.status === 'threadRunning')
@@ -47,6 +51,9 @@ const ChatInterface = (props) => {
 
         const params = {
           id: cancelledQuestion?.reqId, "quesId": cancelledQuestion?.id , userId : state?.profile?.data?.id
+        }
+        if(cancelledQuestion?.isTask){
+          params.quesId = Object.values(cancelledQuestion?.botConversation)?.find(c => c?.status === 'in-progress')?.messageId
         }
         const payload = { boardId: state.activeBoardId }
         
@@ -59,9 +66,10 @@ const ChatInterface = (props) => {
     }
 
     const sendMessageAction = async (value) => {
+        hideRecentAgentsDiv('recent-agents-container');
       const state = store.getState()?.global
       if (value) {
-        const { allAgents, selectedContext} = state
+        const { allAgents, selectedContext, commonAgents} = state
         let params = { reqId: generateShortUUID() }
         let payload = { question: value }
         if(state.activeBoardId) {
@@ -69,14 +77,13 @@ const ChatInterface = (props) => {
         }
         if(!isEmpty(state.customData)){
           
-          payload.customData = state.customData
-          console.log("custom data in chat interface", state.customData)
-          console.log("custom  data payload in chat interface", payload.customData)
+          payload.customData = state.customData          
         }
         const qId = constructQuestionInitial({ ...params, ...payload })
 
         if(!isEmpty(selectedContext?.data)) {
           let _agents = cloneDeep(allAgents?.data?.agents)
+          _agents = [..._agents, ...commonAgents]?.filter(ag => !ag.disabled)          
           let isAgentSetAsSource = _agents.find(ag => ag.id === selectedContext?.data?.sources?.[0]?.source)
           let isAgent = isAgentSetAsSource ? "agent" : null
           if(isAgent) {
@@ -99,6 +106,13 @@ const ChatInterface = (props) => {
             }
           }
         }
+        const scrollableElement = document.querySelector('.chatSec');
+        if (scrollableElement) {
+          requestAnimationFrame(() => {
+            //scrollableElement.scrollTop = scrollableElement.scrollHeight;
+            scrollableElement.scrollTo({ top: scrollableElement.scrollHeight, behavior: 'smooth' });
+          });
+        }
         console.log("payload in chat interface", payload)
         const Res = await store.dispatch(advanceSearch({ params, payload, userId: state.profile.data.id }))
         console.log("payload in chat interface", payload)
@@ -111,8 +125,9 @@ const ChatInterface = (props) => {
 
 
       const reqId = id || state.currentQuestion.reqId;
+      const questions = cloneDeep(store.getState().global.questions);
       const payload = { boardId: state.activeBoardId };
-      const currQuestion = state.questions[state.currentQuestion.reqId];
+      const currQuestion = state.currentQuestion?.isTask ? state.currentQuestion : questions[state.currentQuestion.reqId];
       if(currQuestion?.viewType === "threadView" && currQuestion?.botConversation) {
          stopBotAnswer()
         return;
@@ -123,15 +138,15 @@ const ChatInterface = (props) => {
         reqId, 
         payload 
       }));
-    
-      const questions = cloneDeep(store.getState().global.questions);
-      const reqdCId = getCidByReqId(questions, reqId);
+      
+      const reqdCId = currQuestion?.isTask ? currQuestion?.cId : getCidByReqId(questions, reqId);
     
       constructQuestionPostCall(response, reqdCId);
     };
     
 
     const initiateChatConversationAction = async (arg) => {
+      hideRecentAgentsDiv('recent-agents-container');
       const { enabledAgents, selectedContext } = state
       state = store.getState().global
       let params = { reqId: generateShortUUID() }
@@ -145,7 +160,7 @@ const ChatInterface = (props) => {
       if (state.activeBoardId) {
         payload.boardId = state.activeBoardId
       }
-      if(arg?.payload) {
+      if(arg?.payload) {        
         payload = {...payload, ...arg.payload}
       }
       if(arg?.createIssue){
@@ -153,8 +168,12 @@ const ChatInterface = (props) => {
           params.agentType = "gptAgent"
           params.reqId = getCidByMessageId(state.questions, payload?.messageId)
           replaceExistingQsn = true
+          if(arg?.isTask){
+            params.parentMsgId = arg?.parentMsgId
+          }
         }
-      }
+      }  
+            
 
       if(!isEmpty(state.customData)){
         console.log("custom data in chat interface line no 156", state.customData)
@@ -165,10 +184,19 @@ const ChatInterface = (props) => {
 
 		let qId = null;
 		if(arg?.multiIntentExecution){
-			qId = constructQuestionInitial({...arg?.params, ...arg?.payload, multiIntentExecution : true})
+			qId = constructQuestionInitial({...arg?.params, ...params, ...arg?.payload, multiIntentExecution : true})
 		}else{
 			qId = constructQuestionInitial({...params, ...payload, replaceExistingQsn})
 		}
+    setTimeout(() => {
+       const scrollableElement = document.querySelector('.chatSec');
+       if (scrollableElement) {
+            scrollableElement.scrollTo({
+              top: scrollableElement.scrollHeight,
+              behavior: 'smooth'
+            });
+       }
+    }, 200);
 
 		if(arg?.multiIntentExecution){
 			// params.qId = arg?.params?.stepId;
@@ -277,21 +305,81 @@ const ChatInterface = (props) => {
       return state.customData;
     }
 
+  const responseFlowGeneration = (detail) => {
+    let quesId = detail?.data?.reqId;
+    let questions = cloneDeep(store.getState().global.questions);
+    let question = questions[quesId];
+
+    if (!question) {
+      //Checking whether the question is one among the multi intent execution
+      Object.values(questions)?.forEach(ques => {
+        let reqdQues = ques?.reqId === quesId; //This it to check if the question is the main question or the multi Intent Execution
+        let retryQues = ques?.retryId === quesId; //This is to check retry Questions.
+        if (reqdQues && ques?.isTask) {
+          question = ques;
+          quesId = ques?._id; //The key of the id in multiintent execution is the _id, so we need to assign the _id to the quesId
+          question.showResponseFlow = true;
+        } else if (retryQues) {
+          question = ques;
+          quesId = ques?.id;
+        }
+      })
+      if (!question) {
+        //If the question is not found, then return
+        return;
+      }
+    }
+
+    if (question?.apiSuccess) {      
+      question.generatingAnswerMsg = detail?.data?.suggestion    
+      questions[quesId] = question
+      store.dispatch(updateChatData(questions))
+      return;
+    }
+    question.generatingAnswerMsg = detail?.data?.suggestion
+    questions[quesId] = question
+    store.dispatch(updateChatData(questions))        
+  }
+
     const contentStreaming = (detail) => {
+      let reqId;
+      const {currentQuestion, questions, chatInterfaceOptions} = store.getState().global;
+      let _questions = cloneDeep(questions);
+      if(Object.keys(_questions).length === 0){
+        return;
+      }
       // if contentStreaming set to false by client than it will not stream the content
-      if(state.chatInterfaceOptions?.contentStreaming === false) return;
+      if(chatInterfaceOptions?.contentStreaming === false) return;
 
       // questionsRef.current - because questions state updates not coming in eventBuzz
-      const questions = cloneDeep(state.questions);
+
       /*when resuming the conversation from history, the history data is structured using uuid, so using redId, we can extract the question to be resumed, so need to target the id, present in question with the help of reqId */
       /*function to check the questions are from history */
-      const isHistoryAccessed = checkHistoryAccessed(questions)
-      let reqId = detail?.data?.reqId
-      if(isHistoryAccessed){
-        // /function to fetch the questio id based on the  requestId/
-        reqId = Object.entries(questions).find(([key, value]) => value?.reqId === detail?.data?.reqId)?.[0]
+      const isHistoryAccessed = checkHistoryAccessed(_questions)
+      /*In case of multi intent execution, we need to get the id as we are putting that task as key in questions,
+      so to get that firstly, we will check whether the currentQuestion is a task by checking the isTask flag
+      if it is a task, then we will get the id from the currentQuestion
+      if it is not a task, then we will get the id from the questions with the help of reqId
+      */
+      
+      if(currentQuestion?.isTask){
+        reqId = currentQuestion?.cId
+      }else{
+        reqId = detail?.data?.reqId
       }
-      let question = cloneDeep(questions[reqId])
+      if(isHistoryAccessed){
+        /*function to fetch the questio id based on the  requestId*/
+        reqId = Object.entries(_questions).find(([key, value]) => value?.reqId === detail?.data?.reqId)?.[0]
+      }
+      let question = cloneDeep(_questions[reqId])
+
+      /*if api returns a non 200 response, an error, straming should be stopped */
+      if(question?.status === "error"){
+        question.streamingStatus = "aborted"
+        _questions[reqId] = question
+        store.dispatch(updateChatData(_questions))
+        return;
+      }
 
       /*if api returns a non 200 response, an error, straming should be stopped */
       if(question?.status === "error"){
@@ -344,8 +432,8 @@ const ChatInterface = (props) => {
                         "thoughts": question.botConversation[detail?.data?.outputMessageId]?.thoughts || [],
                     }
               }
-              questions[reqId] = question
-              store.dispatch(updateChatData(questions))
+              _questions[reqId] = question
+              store.dispatch(updateChatData(_questions))
               return;               
             }
             
@@ -361,16 +449,15 @@ const ChatInterface = (props) => {
           delete question?.loading
         }
         
-        questions[reqId] = question
-        store.dispatch(updateChatData(questions))
+        _questions[reqId] = question
+        store.dispatch(updateChatData(_questions))
       }
 
       if (detail?.data?.status === 'completed' || detail?.data?.status === 'aborted') {
         question.streamingStatus = detail?.data?.status // 'completed' or 'aborted'
-
-        const questions = cloneDeep(state.questions)
-        questions[detail?.data?.reqId] = question
-        store.dispatch(updateChatData(questions))
+        
+        _questions[reqId] = question
+        store.dispatch(updateChatData(_questions))
 
         resIndexRef = 0
 
@@ -385,17 +472,19 @@ const ChatInterface = (props) => {
 
 
     const agentThoughts = (detail) => {
+      const state = store.getState().global
       let _questions = cloneDeep(state.questions)
+      const cQFromStore = state.currentQuestion /*this helps to understand whether the current question is a part of agentic flow using isTask flag */
       let reqId = detail?.data?.reqId
       /*when resuming the conversation from history, the history data is structured using uuid, so using redId, we can extract the question to be resumed, so need to target the id, present in question with the help of reqId */
       const isHistoryAccessed = checkHistoryAccessed(_questions)
       if(isHistoryAccessed){
         reqId = Object.entries(_questions).find(([key, value]) => value?.reqId === detail?.data?.reqId)?.[0]
+      }else if(cQFromStore?.isTask){
+        reqId = cQFromStore?.cId
       }
       let currentQuestion = _questions[reqId]
-      if(currentQuestion?.status === "error"){
-        return;
-      }
+      if(detail?.entity !== "answerContext"){      
       if(detail?.data?.answerMeta?.hasOwnProperty('messageId')) {
         currentQuestion = {...currentQuestion, ...detail?.data?.answerMeta}      
         currentQuestion.botConversation = {}  
@@ -413,10 +502,16 @@ const ChatInterface = (props) => {
             "outputMessageId":detail?.data?.answerMeta?.outputMessageId,
             "suggestion":detail?.data?.suggestion,
             "thoughts":detail?.data?.answerMeta?.thoughts,
-            "status":detail?.data?.answerMeta?.status,
+            "status": "in-progress",
             "templateType": detail?.data?.templateType || "search_answer",
         }
-      }      
+      } 
+    } else {
+      currentQuestion.agentIcon = detail?.data?.answerMeta?.agentIcon
+      currentQuestion.agentName = detail?.data?.answerMeta?.agentName
+      currentQuestion.viewType  = detail?.data?.answerMeta?.viewType
+    }
+      
       _questions[reqId] = currentQuestion      
       store.dispatch(updateChatData(_questions))      
       console.log("agentThoughts", detail)
@@ -448,7 +543,7 @@ const ChatInterface = (props) => {
      */
     const sendMessage = (input, question) => {
       // Check if this is a bot conversation
-      if(question?.botConversation) {
+      if(question?.botConversation && question?.status === "threadRunning") {
         // Get the conversation which is in-progress
       const conversation = Object.values(question?.botConversation)?.find(c => c?.status === 'in-progress')
 
@@ -456,7 +551,7 @@ const ChatInterface = (props) => {
         const payload = {
           "cId": question?.cId || question?.reqId, // Use conversation ID or request ID
           "input": input, // User's input message
-          "context": question?.context, // Conversation context
+          // "context": question?.context, // Conversation context
           "messageId": conversation?.messageId, // Message identifier
         }
         // Submit the response to the bot conversation system
@@ -483,6 +578,7 @@ const ChatInterface = (props) => {
       })
     }
 
+
     return {
         subscribe,
         sendMessageAction,
@@ -500,7 +596,8 @@ const ChatInterface = (props) => {
         clearErrorState,
         sendMessage,
         setAgentContext,
-        stopBotAnswer
+        stopBotAnswer,
+      responseFlowGeneration
     }
 }
 

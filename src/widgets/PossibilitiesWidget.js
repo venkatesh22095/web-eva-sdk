@@ -29,7 +29,7 @@ const makePossibilityData = (possibilities, limit = 3) => {
           return f?.replace(/&bdquo;/g, '"')?.replace(/&ldquo;/g, '"')?.replace(/&rdquo;/g, '"')?.replace(/&comma;/g, ',')
       } else ;
   }).filter(Boolean);
-  let filterData = selectRandomValuesFromArray(randomValuesArray, 3);
+  let filterData = selectRandomValuesFromArray(randomValuesArray, limit);
 
   let allUtterances = [];
   for (const category in possibilities) {
