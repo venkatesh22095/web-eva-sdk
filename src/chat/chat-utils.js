@@ -13,76 +13,76 @@ import { fetchHistory } from "../redux/actions/global.action";
 import { multiIntentExecutionFunc } from "../templateRenderer/functionality/multi-intent-execution";
 
 export const constructQuestionInitial = (args) => {
-	let uniqueMsgId = args?.reqId;
-	const questions = cloneDeep(store.getState().global.questions);
+    let uniqueMsgId = args?.reqId;
+    const questions = cloneDeep(store.getState().global.questions);
 
-	if (args?.replaceExistingQsn && !args?.reqId) {
-		uniqueMsgId = getCidByMessageId(questions, args?.messageId);
-	}
+    if (args?.replaceExistingQsn && !args?.reqId) {
+        uniqueMsgId = getCidByMessageId(questions, args?.messageId);
+    }
 
-	const activeBoardId = store.getState().global.activeBoardId;
+    const activeBoardId = store.getState().global.activeBoardId;
 
-	let question = args?.question || args?.action?.postback;
+    let question = args?.question || args?.action?.postback;
 
-	let obj = {};
+    let obj = {};
 
-	let isTask = questions[args?.reqId]?.isTask;
-	let stepIndex = isTask ? questions[args?.reqId]?.stepIndex : null;
+    let isTask = questions[args?.reqId]?.isTask;
+    let stepIndex = isTask ? questions[args?.reqId]?.stepIndex : null;
 
-	if(args?.multiIntentExecution){
+    if(args?.multiIntentExecution){
 
-		obj = {
-			...args?.task,
-			id: args?.stepId,
-			question: args?.task?.utterance,
-			answer: "",
-			loading: true,
-			type: "search",
-			isTask: true,
+        obj = {
+            ...args?.task,
+            id: args?.stepId,
+            question: args?.task?.utterance,
+            answer: "",
+            loading: true,
+            type: "search",
+            isTask: true,
             parentMsgId: args?.parentMsgId,
-			cId: args?.stepId,
-			reqId: args?.reqId,
-			showResponse: true,
-		}
+            cId: args?.stepId,
+            reqId: args?.reqId,
+            showResponse: true,
+        }
 
-		questions[args?.stepId] = obj;
-		uniqueMsgId = args?.stepId;
-		
-	}
-	else if(isTask){
-		obj = {
-			cId: uniqueMsgId,
-			question,
-			answer: "",
-			loading: true,
-			type: "search",
-			reqId: uniqueMsgId,
-			showResponse: true,
-			isTask: true,
+        questions[args?.stepId] = obj;
+        uniqueMsgId = args?.stepId;
+       
+    }
+    else if(isTask){
+        obj = {
+            cId: uniqueMsgId,
+            question,
+            answer: "",
+            loading: true,
+            type: "search",
+            reqId: uniqueMsgId,
+            showResponse: true,
+            isTask: true,
             parentMsgId: args?.parentMsgId,
-			isMultiIntentExecution: true,
-			stepIndex: stepIndex,
-		};
+            isMultiIntentExecution: true,
+            stepIndex: stepIndex,
+        };
 
-		questions[uniqueMsgId] = obj;
-	}
-	else{
-		obj = {
-			cId: uniqueMsgId,
-			question,
-			answer: "",
-			loading: true,
-			type: "search",
-			reqId: uniqueMsgId,
-		};
+        questions[uniqueMsgId] = obj;
+    }
+    else{
+        obj = {
+            cId: uniqueMsgId,
+            question,
+            answer: "",
+            loading: true,
+            type: "search",
+            reqId: uniqueMsgId,
+        };
 
-		questions[uniqueMsgId] = obj;
-	}
+        questions[uniqueMsgId] = obj;
+    }
 
-	store.dispatch(updateChatData(questions));
-	store.dispatch(setCurrentQuestion(obj));
+    store.dispatch(updateChatData(questions));
+    store.dispatch(setCurrentQuestion(obj));
 
-	// if (!activeBoardId) {
+    // if (!activeBoardId) {
 	// 	let arr = store.getState().global?.history?.data?.boards || [];
 	// 	let threadObj = {
 	// 		createdOn: moment().valueOf(),
@@ -95,9 +95,9 @@ export const constructQuestionInitial = (args) => {
 	// 			data: [threadObj, ...arr],
 	// 		})
 	// 	);
-	// }
+    // }
 
-	return uniqueMsgId;
+    return uniqueMsgId;
 };
 
 export const constructQuestionPostCall = (data, qId) => {
@@ -116,11 +116,11 @@ export const constructQuestionPostCall = (data, qId) => {
     let question = questions?.[qId]
     delete question?.loading;
 
-	if (!activeBoardId) {
-		store.dispatch(
-			fetchHistory({ deleteLoader: true, params: { limit: 1} })
-		);
-	}
+    if (!activeBoardId) {
+        store.dispatch(
+            fetchHistory({ deleteLoader: true, params: { limit: 1} })
+        );
+    }
     if(state.enabledCustomTemplates?.[data?.payload?.templateType]) {
         if(data?.payload?.templateType === chatTemplateTypes.GPT_FORM_TEMPLATE) {
             let multiResponseData = MultiResponse().getInitialFormData(data?.payload)
@@ -133,53 +133,53 @@ export const constructQuestionPostCall = (data, qId) => {
             let multiResponseData = MultiResponse().getInitialFormData(data?.payload);
             question.gpt_forms = multiResponseData;
             const gptFormConstructedData = constructGptForm(multiResponseData, data?.payload)
-			// question.template_html = gptFormConstructedData.outerHTML;
-			// setTimeout(() => {
+            // question.template_html = gptFormConstructedData.outerHTML;
+            // setTimeout(() => {
 			// 	gptFormFunctionality(multiResponseData, data?.payload);
-			// }, 1000);
-		}
-	}
+            // }, 1000);
+        }
+    }
 
-	if (data?.payload?.templateType === chatTemplateTypes.SEARCH_ANSWER || data?.payload?.templateType === chatTemplateTypes.SEARCH_RESULTS) {
-		if (data?.payload?.sources?.length > 0 ){
-			// const ansFromChipData = AnswerFromChip({item: data?.payload });
-			// question.answerFrom_html = ansFromChipData.outerHTML;
-			// setTimeout(() => {
-			//     MenuOptions(data?.payload)
-			// }, 1000);
-		}
-		if (Object.values(data?.payload?.thread || {})?.length > 0) {
-			if (!question?.botConversation) {
-				question.botConversation = {};
-				question.parentMessage = data?.payload;
-				data?.payload?.thread?.messages?.map((message) => {
-					question.botConversation[message?.messageId] = message;
-				});
-			} else {
-				if (data?.payload?.thread?.nextMessages?.length) {
-					// question = updatedQuestions?.[currentQuestion]
-					question.botConversation[data?.payload?.messageId].status =
-						data?.payload?.status;
-					question.botConversation[data?.payload?.messageId].answer =
-						data?.payload?.answer;
-					data?.payload?.thread?.nextMessages?.map((message) => {
-						question.botConversation[message?.messageId] = message;
-					});
-					if (
-						data?.payload?.thread?.parentMessage?.status ===
-						"completed"
-					) {
-						question.parentMessage =
-							data?.payload?.thread?.parentMessage;
-						question.status = "completed";
-						// question.collapseBotConversation = true
-						// updateState({
-						//     isBotRunning: false
-						// })
-					}
-				}
-			}
-		}else{
+    if (data?.payload?.templateType === chatTemplateTypes.SEARCH_ANSWER || data?.payload?.templateType === chatTemplateTypes.SEARCH_RESULTS) {
+        if (data?.payload?.sources?.length > 0 ){
+            // const ansFromChipData = AnswerFromChip({item: data?.payload });
+            // question.answerFrom_html = ansFromChipData.outerHTML;
+            // setTimeout(() => {
+            //     MenuOptions(data?.payload)
+            // }, 1000);
+        }
+        if (Object.values(data?.payload?.thread || {})?.length > 0) {
+            if (!question?.botConversation) {
+                question.botConversation = {};
+                question.parentMessage = data?.payload;
+                data?.payload?.thread?.messages?.map((message) => {
+                    question.botConversation[message?.messageId] = message;
+                });
+            } else {
+                if (data?.payload?.thread?.nextMessages?.length) {
+                    // question = updatedQuestions?.[currentQuestion]
+                    question.botConversation[data?.payload?.messageId].status =
+                        data?.payload?.status;
+                    question.botConversation[data?.payload?.messageId].answer =
+                        data?.payload?.answer;
+                    data?.payload?.thread?.nextMessages?.map((message) => {
+                        question.botConversation[message?.messageId] = message;
+                    });
+                    if (
+                        data?.payload?.thread?.parentMessage?.status ===
+                        "completed"
+                    ) {
+                        question.parentMessage =
+                            data?.payload?.thread?.parentMessage;
+                        question.status = "completed";
+                        // question.collapseBotConversation = true
+                        // updateState({
+                        //     isBotRunning: false
+                        // })
+                    }
+                }
+            }
+        }else{
             if(question?.viewType === "threadView"){
                 if(!question?.hasOwnProperty('botConversation')){
                     question.botConversation = {}
@@ -192,29 +192,29 @@ export const constructQuestionPostCall = (data, qId) => {
                     question.botConversation[data?.payload?.messageId] = currentConversation
                 }
             }
-                
+               
             }
         }
 
         /*based on question, if its viewType is threadView need to do botConversation update here */
-        
+       
 
         /*Clearing the selected context when search results are received */
         if(data?.payload?.context?.enable === false || state?.selectedContext?.type === "agent" || state?.selectedContext?.type === "commonAgent" || state?.selectedContext?.type === "searchAgent"){
             store.dispatch(setSelectedContext(null))
         }
-	}
+    }
 
     if(data?.payload?.queryExhaustionInfo?.queryLimitExhausted){
         question.queryExhaustionInfo = data?.payload?.queryExhaustionInfo
         store.dispatch(setErrorState(data?.payload?.queryExhaustionInfo))
     }
 
-	if(data?.payload?.quickactions){
-		store.dispatch(setQuickActions(data?.payload?.quickactions));
-	}else{
-		store.dispatch(setQuickActions([]));
-	}
+    if(data?.payload?.quickactions){
+        store.dispatch(setQuickActions(data?.payload?.quickactions));
+    }else{
+        store.dispatch(setQuickActions([]));
+    }
     // if(data?.params?.arg?.retry) {
     //     delete question?.error;
     // }
@@ -233,7 +233,7 @@ export const constructQuestionPostCall = (data, qId) => {
     //     question = {...question, ...obj}
     // }
 
-    //for slack and msTeams 
+    //for slack and msTeams
     // if((data?.res?.templateType === "action_send_slack_message" || data?.res?.templateType === "action_send_teams_message" || data?.res?.templateType === "action_send_msteams_message") && data?.res?.status === "draft") {    
     //     question = {...question, ...{externalIntegrationAction : true, skills: `${data?.res?.templateType === "action_send_teams_message" || data?.res?.templateType === "action_send_msteams_message" ? "msteams" : "slack"}`}}
     // }
@@ -276,25 +276,25 @@ export const constructQuestionPostCall = (data, qId) => {
         questions[qId] = { ...question, apiSuccess: false };
         store.dispatch(updateChatData(questions))
         return;
-        
+       
         // question = { ...question, error: data?.error, errInfo: data?.errInfo};
         // if(data?.errInfo?.errors[0]?.code === 'MaximumPointsExceeded'){
         //     _limitExhausted = data?.errInfo?.errors[0]
         // }
-	} else if (data?.meta?.arg?.multiIntentExecution || question?.isMultiIntentExecution) {
-		const stepIndex = question?.stepIndex;
-		question = { ...question, ...data?.payload, showResponse: true};
-		questions[question?.parentMsgId].executingActionId = question?.stepId
-		if(stepIndex === 0) {
-		    questions[question?.parentMsgId].status = 'in-progress'
-		}
-		if(question?.isTask) {
-				const stepIndex = question?.stepIndex;
-				setTimeout(() => {
-					multiIntentExecutionFunc().runNextTask(stepIndex, data?.payload?.status , question)
-				}, 1000);
-		}
-	}
+    } else if (data?.meta?.arg?.multiIntentExecution || question?.isMultiIntentExecution) {
+        const stepIndex = question?.stepIndex;
+        question = { ...question, ...data?.payload, showResponse: true};
+        questions[question?.parentMsgId].executingActionId = question?.stepId
+        if(stepIndex === 0) {
+            questions[question?.parentMsgId].status = 'in-progress'
+        }
+        if(question?.isTask) {
+                const stepIndex = question?.stepIndex;
+                setTimeout(() => {
+                    multiIntentExecutionFunc().runNextTask(stepIndex, data?.payload?.status , question)
+                }, 1000);
+        }
+    }
     else if(data?.payload?.history?.status === msgStatus.TERMINATED){
         if(data?.payload?.history?.templateType === chatTemplateTypes.GPT_FORM_TEMPLATE){
             delete question.template_html
@@ -307,12 +307,12 @@ export const constructQuestionPostCall = (data, qId) => {
                 multiIntentExecutionFunc().runNextTask(stepIndex, data?.payload?.history?.status, question)
             }, 1000);
         }
-	} 
+    }
     else {      
         if(data?.meta?.arg?.params?.from !== "botAgent") {
-            question = { ...question, ...data?.payload}; 
+            question = { ...question, ...data?.payload};
         }
-                        
+                       
     }
    
     // let context;
@@ -340,7 +340,7 @@ export const constructQuestionPostCall = (data, qId) => {
             question.botConversation = {}
             question.parentMessage = data.payload.res
             data?.payload?.thread?.messages?.map(message => {
-                question.botConversation[message?.messageId] = message
+                question.botConversation[message?.messageId] = { ...message, "chunkMeta": question?.chunkMeta || {} }
             })                        
         }
         if (data?.payload?.thread && data?.payload?.thread?.nextMessages && data?.payload?.thread?.nextMessages?.length) {    
@@ -348,12 +348,12 @@ export const constructQuestionPostCall = (data, qId) => {
             question.botConversation[data?.payload?.messageId].status = data?.payload?.status
             question.botConversation[data?.payload?.messageId].answer = data?.payload?.answer
             data?.payload?.thread?.nextMessages?.map(message => {
-                question.botConversation[message?.messageId] = message
+                question.botConversation[message?.messageId] = { ...message, "chunkMeta": question?.chunkMeta || {} }
             })
             if (data?.payload?.thread?.parentMessage?.status === "completed") {
                 question.status = "completed"                
                 question.parentMessage = data?.payload?.thread?.parentMessage
-                
+               
             }
         }
         // question.question = data?.res?.question
@@ -410,7 +410,7 @@ export const constructQuestionPostCall = (data, qId) => {
             store.dispatch(setActiveBoardId(data?.payload?.history?.bId))
         }else{
             store.dispatch(setActiveBoardId(data?.payload?.boardId))
-        } 
+        }
     }
     /*MS is having the concept of followupContext which updates the selectedContext, In agenticflow also it is happening once the 1st task is executed, so to prevent this we are checking for the existence of stepId, if exists followupcontext cant be set */
     if (data?.payload?.followUpContext && state.enableContextByFollowupContext && !data?.payload?.hasOwnProperty('stepId')) {
@@ -447,6 +447,7 @@ const removeOutputMessageId = (question, apiResponse) => {
         if(apiResponse?.res?.thread?.messages && apiResponse?.res?.thread?.messages.length > 0){
             apiResponse?.res?.thread?.messages.map(message => {
                 if(Object.keys(question?.botConversation)?.length > 0 && question?.botConversation[message?.outputMessageId]) {
+                    question.chunkMeta = question?.botConversation[message?.outputMessageId]?.chunkMeta || {}
                     delete question?.botConversation[message?.outputMessageId]
                 }
             })
@@ -454,6 +455,7 @@ const removeOutputMessageId = (question, apiResponse) => {
         if(apiResponse?.res?.thread?.nextMessages && apiResponse?.res?.thread?.nextMessages.length > 0){
             apiResponse?.res?.thread?.nextMessages.map(message => {
                 if(Object.keys(question?.botConversation)?.length > 0 && question?.botConversation[message?.outputMessageId]) {
+                    question.chunkMeta = question?.botConversation[message?.outputMessageId]?.chunkMeta || {}
                     delete question?.botConversation[message?.outputMessageId]
                 }
             })
@@ -465,7 +467,7 @@ const removeOutputMessageId = (question, apiResponse) => {
 
 const addErrorStateToBotConversation = (question, resp) =>{
     /*the below block is for stop response scenario */
-    if(question?.botConversation?.[resp?.meta?.arg?.params?.quesId]){ 
+    if(question?.botConversation?.[resp?.meta?.arg?.params?.quesId]){
         question.botConversation[resp?.meta?.arg?.params?.quesId].status = "error"
         question.botConversation[resp?.meta?.arg?.params?.quesId].error = resp?.error
     }else{

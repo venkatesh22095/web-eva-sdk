@@ -99,11 +99,8 @@ export const advanceSearch = createAsyncThunk(
             const response = await axiosInstance.post(`1.1/kora/users/${arg.userId}/advancedsearch`, arg.payload, {
                 params: arg?.params,
                 signal: controller.signal,
-                headers: {
-                    'kore-traceid': traceId
-                }
             });
-            return { ...response.data, 'kore-traceid': traceId};
+            return response.data;
         } catch (error) {
             handleErrorState(error, "Advance Search");
             return thunkAPI.rejectWithValue(error.response.data);
