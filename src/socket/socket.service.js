@@ -21,9 +21,11 @@ class WebSocketClient {
         this.url = url;
         this.options = {
             transports: ["websocket"],
-            reconnection: true,
+            reconnection: false,
+            forceNew: true,
+            reconnect: false,
             reconnectionAttempts: 1000,
-            reconnectionDelay: 1000,
+            reconnectionDelay: 1000,            
             ...options,
         };
     }
@@ -44,15 +46,19 @@ class WebSocketClient {
             this.socket.on("connect", () => {
                 console.info(`Socket connected: ${this.socket.id}`);
             });
-            
+           
             this.socket.on("disconnect", async (reason) => {
-                await store.dispatch(presenceStart())
                 console.warn(`Socket disconnected: ${reason}`);
+                // Get new sToken and reconnect with it
+                await store.dispatch(presenceStart());
+                this.reconnect();
             });
 
             this.socket.on("connect_error", async (error) => {
-                await store.dispatch(presenceStart())
                 console.error(`Socket connection Error: ${error.message}`);
+                // Get new sToken and reconnect with it
+                await store.dispatch(presenceStart());
+                this.reconnect();
             });
 
             this.socket.on("message", (data) => {
@@ -70,7 +76,7 @@ class WebSocketClient {
                         ChatInterface().agentThoughts(msg)                                        
                 }
                 if (msg?.entity === "thoughts") {
-                    ChatInterface().agentThoughts(msg)     
+                    ChatInterface().agentThoughts(msg)    
                 }
                 if(msg?.entity === "answerChunk"){
                     ChatInterface().contentStreaming(msg)
@@ -91,6 +97,19 @@ class WebSocketClient {
             return null;
         }
 
+    }
+
+    reconnect() {
+        if (this.socket) {
+            this.socket.query= {
+                ...(this.options?.query || {}),
+                sToken: store.getState().global?.presenceStart?.data?.sToken,
+                rnd: new Date().getTime(),
+            }
+            this.socket.reconnect();
+        } else {
+            console.error("Socket is not able to reconnect.");
+        }
     }
 
     disconnect() {
@@ -126,4 +145,4 @@ class WebSocketClient {
     }
 }
 
-export const WebSocketService = new WebSocketClient();
+export const WebSocketService = new WebSocketClient()
