@@ -7,142 +7,199 @@ import store from "../redux/store";
 import { HistoryInterface } from "../history";
 
 class WebSocketClient {
-    constructor() {
-        this.socket = null;
-        this.url = null;
-        this.options = null;
+  socket = null;
+  url = null;
+  options = null;
+  listenersRegistered = false;
+  isRefreshingToken = false;
+  isManuallyDisconnected = false;
+
+  /* -------------------- INIT -------------------- */
+  initialize({ url, options = {} }) {
+    this.url = url;
+    this.options = {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      autoConnect: false,
+      ...options,
+    };
+
+    /* Network restore handling */
+    window.addEventListener("online", () => {
+      console.info("Network restored → reconnecting socket");
+    //  this.reconnect();
+    });
+
+    window.addEventListener("offline", () => {
+      console.warn("Network lost → disconnecting socket");
+      this.socket?.disconnect();
+    });
+  }
+
+  /* -------------------- CONNECT -------------------- */
+  async connect() {
+    if (!this.url || !this.options) {
+      console.error("Socket not initialized");
+      return;
     }
 
-    initialize({ url, options }) {
-        if (this.socket) {
-            console.warn("Socket already initialized");
-            return;
-        }
-        this.url = url;
-        this.options = {
-            transports: ["websocket"],
-            reconnection: false,
-            forceNew: true,
-            reconnect: false,
-            reconnectionAttempts: 1000,
-            reconnectionDelay: 1000,            
-            ...options,
+    if (!navigator.onLine) {
+      console.warn("Offline, waiting for network...");
+      return;
+    }
+
+    this.isManuallyDisconnected = false;
+
+    // await store.dispatch(presenceStart());
+    const sToken = store.getState().global?.presenceStart?.data?.sToken;
+
+    if (!this.socket) {
+      this.socket = io(this.url, {
+        ...this.options,
+        query: {
+          ...(this.options.query || {}),
+          sToken,
+        },
+      });
+
+      this.registerCoreListeners();
+      this.registerAppListeners();
+    } else {
+      this.socket.io.opts.query = {
+        ...(this.socket.io.opts.query || {}),
+        sToken,
+      };
+    }
+
+    this.socket.connect();
+  }
+
+  /* -------------------- RECONNECT -------------------- */
+  async reconnect() {
+    if (this.isManuallyDisconnected) return;
+    if (!navigator.onLine) return;
+
+    if (!this.socket) {
+      await this.connect();
+      return;
+    }
+
+    if (this.socket.connected) return;
+
+    console.info("Reconnecting socket...");
+
+    await store.dispatch(presenceStart());
+
+    this.socket.io.opts.query = {
+      ...(this.socket.io.opts.query || {}),
+      sToken: store.getState().global?.presenceStart?.data?.sToken,
+    };
+
+    this.socket.connect();
+  }
+
+  /* -------------------- CORE LISTENERS -------------------- */
+  registerCoreListeners() {
+    this.socket.on("connect", () => {
+      console.info("Socket connected:", this.socket.id);
+    });
+
+    this.socket.on("disconnect", (reason) => {
+      console.warn("Socket disconnected:", reason);
+    });
+
+    this.socket.on("connect_error", async (err) => {
+      console.error("Socket connect error:", err.message);
+
+      if (!navigator.onLine) return;
+      if (this.isRefreshingToken) return;
+
+      this.isRefreshingToken = true;
+
+      try {
+        await store.dispatch(presenceStart());
+
+        this.socket.io.opts.query = {
+          ...(this.socket.io.opts.query || {}),
+          sToken: store.getState().global?.presenceStart?.data?.sToken,
         };
-    }
 
-    connect() {
-        if (!this.url || !this.options) {
-            console.error("Socket configuration is not initialized.");
-            return;
-        }
-        if (this.socket) {
-            console.warn("Socket already connected");
-            return;
-        }
+        this.socket.connect();
+      } finally {
+        this.isRefreshingToken = false;
+      }
+    });
 
-        try {
-            this.socket = io(this.url, this.options);
-            console.log("connected socket data: ", this.socket)
-            this.socket.on("connect", () => {
-                console.info(`Socket connected: ${this.socket.id}`);
-            });
-           
-            this.socket.on("disconnect", async (reason) => {
-                console.warn(`Socket disconnected: ${reason}`);
-                // Get new sToken and reconnect with it
-                await store.dispatch(presenceStart());
-                this.reconnect();
-            });
+    /* Debug helpers (optional) */
+    this.socket.io.on("reconnect_attempt", () => {
+      console.log("Reconnect attempt...");
+    });
 
-            this.socket.on("connect_error", async (error) => {
-                console.error(`Socket connection Error: ${error.message}`);
-                // Get new sToken and reconnect with it
-                await store.dispatch(presenceStart());
-                this.reconnect();
-            });
+    this.socket.io.on("reconnect_failed", () => {
+      console.log("Reconnect failed");
+    });
+  }
 
-            this.socket.on("message", (data) => {
-                console.log("Socket message received:", data);
-            });
+  /* -------------------- APP LISTENERS -------------------- */
+  registerAppListeners() {
+    if (this.listenersRegistered) return;
+    this.listenersRegistered = true;
 
-            this.socket.on("botMessage", (data) => {
-                console.log("bot message received:", data);
-                BotConversation().setBotConversation(data)
-            });
+    this.socket.on("message", (data) => {
+      console.log("Socket message:", data);
+    });
 
-            this.socket.on('live', (msg) => {
-                if(msg?.entity === "answerContext") {
-                    /*In answer suggestion, will receive thoughts of agents, need to append to the question*/                    
-                        ChatInterface().agentThoughts(msg)                                        
-                }
-                if (msg?.entity === "thoughts") {
-                    ChatInterface().agentThoughts(msg)    
-                }
-                if(msg?.entity === "answerChunk"){
-                    ChatInterface().contentStreaming(msg)
-                }
-                if (msg?.entity === "boardName") {
-                    /*update the name in the history board */
-                    HistoryInterface().updateHistoryBoardNameonSocketEvent(msg?.data)
-                }
-                if (msg?.entity === 'reqFlow') {
-                    ChatInterface().responseFlowGeneration(msg)
-                }
-            });
-            this.socket.on("notification", (msg) => {
-                Notification().notifyLatestNotification(msg)
-            })
-        } catch (err) {
-            console.error('AI for Work exception in socket connection', err?.message);
-            return null;
-        }
+    this.socket.on("botMessage", (data) => {
+      BotConversation().setBotConversation(data);
+    });
 
-    }
+    this.socket.on("live", (msg) => {
+      if (msg?.entity === "answerContext" || msg?.entity === "thoughts") {
+        ChatInterface().agentThoughts(msg);
+      }
 
-    reconnect() {
-        if (this.socket) {
-            this.socket.query= {
-                ...(this.options?.query || {}),
-                sToken: store.getState().global?.presenceStart?.data?.sToken,
-                rnd: new Date().getTime(),
-            }
-            this.socket.reconnect();
-        } else {
-            console.error("Socket is not able to reconnect.");
-        }
-    }
+      if (msg?.entity === "answerChunk") {
+        ChatInterface().contentStreaming(msg);
+      }
 
-    disconnect() {
-        if (this.socket) {
-            this.socket.disconnect();
-            console.info("Socket disconnected.");
-            this.socket = null;
-        }
-    }
+      if (msg?.entity === "boardName") {
+        HistoryInterface().updateHistoryBoardNameonSocketEvent(msg?.data);
+      }
 
-    emit(event, data) {
-        if (this.socket) {
-            this.socket.emit(event, data);
-        } else {
-            console.error("Socket is not connected.");
-        }
-    }
+      if (msg?.entity === "reqFlow") {
+        ChatInterface().responseFlowGeneration(msg);
+      }
+    });
 
-    on(event, callback) {
-        if (this.socket) {
-            this.socket.on(event, callback);
-        } else {
-            console.error("Socket is not connected.");
-        }
-    }
+    this.socket.on("notification", (msg) => {
+      Notification().notifyLatestNotification(msg);
+    });
+  }
 
-    off(event) {
-        if (this.socket) {
-            this.socket.off(event);
-        } else {
-            console.error("Socket is not connected.");
-        }
-    }
+  /* -------------------- EMIT -------------------- */
+  emit(event, data) {
+    if (!this.socket?.connected) return;
+    this.socket.emit(event, data);
+  }
+
+  /* -------------------- DISCONNECT -------------------- */
+  disconnect() {
+    if (!this.socket) return;
+
+    this.isManuallyDisconnected = true;
+
+    this.socket.removeAllListeners();
+    this.socket.disconnect();
+    this.socket.close();
+
+    this.socket = null;
+    this.listenersRegistered = false;
+    this.isRefreshingToken = false;
+
+    console.info("Socket disconnected manually");
+  }
 }
 
-export const WebSocketService = new WebSocketClient()
+export const WebSocketService = new WebSocketClient();
