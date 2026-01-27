@@ -19,9 +19,7 @@ class WebSocketClient {
     this.url = url;
     this.options = {
       transports: ["websocket"],
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
+      reconnection: false,  // Disable socket.io auto-reconnection - we handle it manually
       autoConnect: false,
       ...options,
     };
@@ -29,12 +27,31 @@ class WebSocketClient {
     /* Network restore handling */
     window.addEventListener("online", () => {
       console.info("Network restored → reconnecting socket");
-    //  this.reconnect();
+      // Small delay to ensure network is stable
+      setTimeout(() => {
+        this.reconnect();
+      }, 1000);
     });
 
     window.addEventListener("offline", () => {
       console.warn("Network lost → disconnecting socket");
-      this.socket?.disconnect();
+      if (this.socket) {
+        this.socket.disconnect();
+      }
+    });
+
+    /* Handle device wake from sleep - visibility change is more reliable than online/offline */
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        console.info("Page visible → checking socket connection");
+        // Check if socket is disconnected and reconnect with fresh token
+        if (this.socket && !this.socket.connected && !this.isManuallyDisconnected) {
+          console.info("Socket disconnected after wake → reconnecting");
+          setTimeout(() => {
+            this.reconnect();
+          }, 500);
+        }
+      }
     });
   }
 
@@ -52,8 +69,13 @@ class WebSocketClient {
 
     this.isManuallyDisconnected = false;
 
-    // await store.dispatch(presenceStart());
-    const sToken = store.getState().global?.presenceStart?.data?.sToken;
+    // Ensure sToken is available - fetch if not present
+    let sToken = store.getState().global?.presenceStart?.data?.sToken;
+    if (!sToken) {
+      console.info("sToken not found, fetching via presenceStart...");
+      await store.dispatch(presenceStart());
+      sToken = store.getState().global?.presenceStart?.data?.sToken;
+    }
 
     if (!this.socket) {
       this.socket = io(this.url, {
@@ -67,9 +89,11 @@ class WebSocketClient {
       this.registerCoreListeners();
       this.registerAppListeners();
     } else {
+      // Use this.options.query to preserve original userid, channels, etc.
       this.socket.io.opts.query = {
-        ...(this.socket.io.opts.query || {}),
+        ...(this.options.query || {}),
         sToken,
+        rnd: new Date().getTime(),
       };
     }
 
@@ -80,6 +104,7 @@ class WebSocketClient {
   async reconnect() {
     if (this.isManuallyDisconnected) return;
     if (!navigator.onLine) return;
+    if (this.isRefreshingToken) return; // Prevent multiple simultaneous reconnection attempts
 
     if (!this.socket) {
       await this.connect();
@@ -90,14 +115,29 @@ class WebSocketClient {
 
     console.info("Reconnecting socket...");
 
-    await store.dispatch(presenceStart());
+    this.isRefreshingToken = true;
 
-    this.socket.io.opts.query = {
-      ...(this.socket.io.opts.query || {}),
-      sToken: store.getState().global?.presenceStart?.data?.sToken,
-    };
+    try {
+      // Always fetch fresh sToken on reconnect (especially important after sleep)
+      await store.dispatch(presenceStart());
 
-    this.socket.connect();
+      const sToken = store.getState().global?.presenceStart?.data?.sToken;
+      if (!sToken) {
+        console.error("Failed to get sToken for reconnection");
+        return;
+      }
+
+      // Use this.options.query to preserve original userid, channels, etc.
+      this.socket.io.opts.query = {
+        ...(this.options.query || {}),
+        sToken,
+        rnd: new Date().getTime(),
+      };
+
+      this.socket.connect();
+    } finally {
+      this.isRefreshingToken = false;
+    }
   }
 
   /* -------------------- CORE LISTENERS -------------------- */
@@ -121,9 +161,11 @@ class WebSocketClient {
       try {
         await store.dispatch(presenceStart());
 
+        // Use this.options.query to preserve original userid, channels, etc.
         this.socket.io.opts.query = {
-          ...(this.socket.io.opts.query || {}),
+          ...(this.options.query || {}),
           sToken: store.getState().global?.presenceStart?.data?.sToken,
+          rnd: new Date().getTime(),
         };
 
         this.socket.connect();
