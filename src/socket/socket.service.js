@@ -77,6 +77,12 @@ class WebSocketClient {
       sToken = store.getState().global?.presenceStart?.data?.sToken;
     }
 
+    // CRITICAL: Do NOT create socket if sToken is not available
+    if (!sToken) {
+      console.error("Cannot connect socket: sToken not available (presenceStart API may have failed)");
+      return;
+    }
+
     if (!this.socket) {
       this.socket = io(this.url, {
         ...this.options,
@@ -161,10 +167,18 @@ class WebSocketClient {
       try {
         await store.dispatch(presenceStart());
 
+        const sToken = store.getState().global?.presenceStart?.data?.sToken;
+        
+        // Don't reconnect if presenceStart failed
+        if (!sToken) {
+          console.error("Cannot reconnect: presenceStart API failed to return sToken");
+          return;
+        }
+
         // Use this.options.query to preserve original userid, channels, etc.
         this.socket.io.opts.query = {
           ...(this.options.query || {}),
-          sToken: store.getState().global?.presenceStart?.data?.sToken,
+          sToken,
           rnd: new Date().getTime(),
         };
 

@@ -39,19 +39,24 @@ export const initializeSDK = async (config) => {
   //enablement of debugging i.e console.log statements
   store.dispatch(setEnabledDebugging(config.enableDebugging))
 
-  // Initialize and connect WebSocket
-  WebSocketService.initialize({
-    url: config.presence_url,
-    options: {
-      query: {
-        userid: config.userId,
-        channels: 7,
-        sToken: store.getState().global?.presenceStart?.data?.sToken,
-        rnd: new Date().getTime(),
+  // Only initialize and connect WebSocket if presenceStart succeeded
+  const sToken = store.getState().global?.presenceStart?.data?.sToken;
+  if (sToken) {
+    WebSocketService.initialize({
+      url: config.presence_url,
+      options: {
+        query: {
+          userid: config.userId,
+          channels: 7,
+          sToken,
+          rnd: new Date().getTime(),
+        },
       },
-    },
-  });
-  WebSocketService.connect();
+    });
+    WebSocketService.connect();
+  } else {
+    console.error("Socket initialization skipped: presenceStart API failed to return sToken");
+  }
   // WebSocketService.on("live", (data) => {
   //   console.log('sadfafafs')
   // })
