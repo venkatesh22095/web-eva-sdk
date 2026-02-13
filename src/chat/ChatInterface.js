@@ -494,7 +494,7 @@ const ChatInterface = (props) => {
       if(detail?.entity !== "answerContext"){      
       if(detail?.data?.answerMeta?.hasOwnProperty('messageId')) {
         currentQuestion = {...currentQuestion, ...detail?.data?.answerMeta}      
-        currentQuestion.botConversation = {}  
+        // currentQuestion.botConversation = {}  
       }
       /*we have to create botConversation with the outputMessageId add thoughts to it, once the advanceSearchApi is completed, need to replace that outputMessageId with the response of advSearch API */
       if(detail?.data?.answerMeta?.hasOwnProperty('outputMessageId')){
